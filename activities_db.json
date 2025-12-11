@@ -1,0 +1,318 @@
+[
+  {
+    "section": "Knowns",
+    "name": "Drive to work",
+    "minutes_twins": 30,
+    "minutes_no_twins": 20,
+    "location": "In Transit",
+    "note": "",
+    "order": 0
+  },
+  {
+    "section": "Knowns",
+    "name": "Walking time from parking",
+    "minutes_twins": 10,
+    "minutes_no_twins": 10,
+    "location": "In Transit",
+    "note": "",
+    "order": 1
+  },
+  {
+    "section": "Daily External Variables",
+    "name": "Light rain/heavy fog/light snow",
+    "minutes_twins": 7,
+    "minutes_no_twins": 8,
+    "location": "In Transit",
+    "note": "",
+    "order": 2
+  },
+  {
+    "section": "Daily External Variables",
+    "name": "Heavy rain/heavy snow/icey",
+    "minutes_twins": 10,
+    "minutes_no_twins": 12,
+    "location": "In Transit",
+    "note": "",
+    "order": 3
+  },
+  {
+    "section": "Daily External Variables",
+    "name": "Weather emergency",
+    "minutes_twins": 15,
+    "minutes_no_twins": 15,
+    "location": "In Transit",
+    "note": "",
+    "order": 4
+  },
+  {
+    "section": "Daily External Variables",
+    "name": "Am I injured/sick?",
+    "minutes_twins": 7,
+    "minutes_no_twins": 7,
+    "location": "In Transit",
+    "note": "need to plan additional longer walking time, additional longer bathroom stops, etc",
+    "order": 5
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Get out of bed, use bathroom",
+    "minutes_twins": 15,
+    "minutes_no_twins": 15,
+    "location": "bedroom",
+    "note": "",
+    "order": 6
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Set up pump supplies",
+    "minutes_twins": 5,
+    "minutes_no_twins": 5,
+    "location": "pumping space",
+    "note": "",
+    "order": 7
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Change baby",
+    "minutes_twins": 5,
+    "minutes_no_twins": 5,
+    "location": "pumping space",
+    "note": "",
+    "timing_history": [],
+    "order": 8
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Pump/feed baby",
+    "minutes_twins": 30,
+    "minutes_no_twins": 30,
+    "location": "pumping space",
+    "note": "",
+    "order": 9
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Put away pumps/transition supplies to next floor",
+    "minutes_twins": 10,
+    "minutes_no_twins": 10,
+    "location": "pumping space",
+    "note": "",
+    "order": 10
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Get undressed",
+    "minutes_twins": 2,
+    "minutes_no_twins": 2,
+    "location": "bedroom",
+    "note": "",
+    "order": 11
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Basic skincare",
+    "minutes_twins": 3,
+    "minutes_no_twins": 3,
+    "location": "bathroom",
+    "note": "",
+    "order": 12
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Basic layer of makeup",
+    "minutes_twins": 5,
+    "minutes_no_twins": 5,
+    "location": "bathroom",
+    "note": "",
+    "order": 13
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Brush teeth",
+    "minutes_twins": 2,
+    "minutes_no_twins": 2,
+    "location": "bathroom",
+    "note": "",
+    "order": 14
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Get dressed, apply deodorant",
+    "minutes_twins": 3,
+    "minutes_no_twins": 3,
+    "location": "bedroom",
+    "note": "",
+    "order": 15
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Gather pump/lunch supplies and put on shoes",
+    "minutes_twins": 5,
+    "minutes_no_twins": 5,
+    "location": "main floor",
+    "note": "",
+    "order": 16
+  },
+  {
+    "section": "Daily Minimum Activities",
+    "name": "Load up in car",
+    "minutes_twins": 5,
+    "minutes_no_twins": 2,
+    "location": "main floor",
+    "note": "",
+    "order": 17
+  },
+  {
+    "section": "Add Ons",
+    "name": "Was retainer worn last night?",
+    "minutes_twins": 2,
+    "minutes_no_twins": 2,
+    "location": "bathroom",
+    "note": "rinse and put in jar with cleanser",
+    "order": 18
+  },
+  {
+    "section": "Add Ons",
+    "name": "Choose outfit",
+    "minutes_twins": 3,
+    "minutes_no_twins": 3,
+    "location": "bedroom",
+    "note": "if not done night before",
+    "order": 19
+  },
+  {
+    "section": "Add Ons",
+    "name": "Basic shower",
+    "minutes_twins": 15,
+    "minutes_no_twins": 15,
+    "location": "shower",
+    "note": "(start shower, wash body, squeegee, dry off)",
+    "order": 20
+  },
+  {
+    "section": "Add Ons",
+    "name": "Shave legs",
+    "minutes_twins": 20,
+    "minutes_no_twins": 20,
+    "location": "shower",
+    "note": "",
+    "order": 21
+  },
+  {
+    "section": "Add Ons",
+    "name": "Wash face & exfoliate",
+    "minutes_twins": 4,
+    "minutes_no_twins": 4,
+    "location": "shower",
+    "note": "",
+    "order": 22
+  },
+  {
+    "section": "Add Ons",
+    "name": "Wash hair",
+    "minutes_twins": 8,
+    "minutes_no_twins": 8,
+    "location": "shower",
+    "note": "Wash, condition, clean up hair fallout",
+    "order": 23
+  },
+  {
+    "section": "Add Ons",
+    "name": "Apply curly products in shower",
+    "minutes_twins": 8,
+    "minutes_no_twins": 8,
+    "location": "shower",
+    "note": "Squish to condish, rinse hair upside down, mousse, curl cream, hair plopped",
+    "order": 24
+  },
+  {
+    "section": "Add Ons",
+    "name": "Countertop curly hair products",
+    "minutes_twins": 5,
+    "minutes_no_twins": 5,
+    "location": "bathroom",
+    "note": "gel, hair spray, plop",
+    "order": 25
+  },
+  {
+    "section": "Add Ons",
+    "name": "Quick diffuse dry curly hair",
+    "minutes_twins": 10,
+    "minutes_no_twins": 10,
+    "location": "bathroom",
+    "note": "clip, diffuse just top layer",
+    "order": 26
+  },
+  {
+    "section": "Add Ons",
+    "name": "Regular diffuse dry curly hair",
+    "minutes_twins": 20,
+    "minutes_no_twins": 20,
+    "location": "bathroom",
+    "note": "clip, diffuse all",
+    "order": 27
+  },
+  {
+    "section": "Add Ons",
+    "name": "More careful makeup application",
+    "minutes_twins": 8,
+    "minutes_no_twins": 8,
+    "location": "bathroom",
+    "note": "",
+    "order": 28
+  },
+  {
+    "section": "Add Ons",
+    "name": "Blow dry straight",
+    "minutes_twins": 20,
+    "minutes_no_twins": 20,
+    "location": "bathroom",
+    "note": "apply straightening products, clip into sections, use blow dry brush",
+    "order": 29
+  },
+  {
+    "section": "Add Ons",
+    "name": "Style blowout",
+    "minutes_twins": 15,
+    "minutes_no_twins": 15,
+    "location": "bathroom",
+    "note": "curl/straighten where needed",
+    "order": 30
+  },
+  {
+    "section": "Add Ons",
+    "name": "Next day blowout neaten",
+    "minutes_twins": 8,
+    "minutes_no_twins": 8,
+    "location": "bathroom",
+    "note": "straighten roots, curl wonky bits",
+    "order": 31
+  },
+  {
+    "section": "Add Ons",
+    "name": "Pin/Clip up unwashed hair",
+    "minutes_twins": 5,
+    "minutes_no_twins": 5,
+    "location": "",
+    "note": "",
+    "order": 32
+  },
+  {
+    "section": "Add Ons",
+    "name": "Prepare a meal",
+    "minutes_twins": 8,
+    "minutes_no_twins": 8,
+    "location": "main floor",
+    "note": "",
+    "order": 33
+  },
+  {
+    "section": "Add Ons",
+    "name": "Work pump supply prep",
+    "minutes_twins": 5,
+    "minutes_no_twins": 5,
+    "location": "main floor",
+    "note": "if not done night before",
+    "order": 34
+  }
+]

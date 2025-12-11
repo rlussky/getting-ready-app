@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Ready Timing Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 30px; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        h3 { color: #666; margin-top: 20px; }
+        .section { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+        .activity { margin: 10px 0; padding: 5px; }
+        label { display: inline-block; margin-left: 10px; }
+        input[type="time"], select { padding: 5px; margin: 5px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 0; }
+        button:hover { background: #0056b3; }
+        .results { background: #e7f3ff; padding: 20px; border-radius: 5px; margin-top: 20px; }
+        .results h2 { border-bottom: none; }
+        .note { font-size: 0.9em; color: #666; font-style: italic; }
+        .time-display { font-weight: bold; color: #007bff; }
+        .sticky-results { position: sticky; top: 0; z-index: 100; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: -20px -20px 20px -20px; padding: 15px 20px; }
+        .sticky-results.hidden { display: none; }
+        .time-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .time-row:last-child { border-bottom: none; }
+        .time-label { font-weight: bold; font-size: 0.9em; }
+        .time-value { font-size: 1.3em; font-weight: bold; }
+        .wake-time { color: #007bff; }
+        .leave-time { color: #28a745; }
+        .arrive-time { color: #dc3545; }
+    </style>
+    <script>
+        let activitiesData = {};
+        
+        function updateTimes() {
+            const twinsSelect = document.querySelector('select[name="boys_school"]');
+            const isTwinsMorning = twinsSelect.value === 'yes';
+            
+            document.querySelectorAll('.time-display').forEach(el => {
+                const twinsMins = el.dataset.twinsMins;
+                const noTwinsMins = el.dataset.noTwinsMins;
+                const minutes = isTwinsMorning ? twinsMins : noTwinsMins;
+                el.textContent = minutes + ' min';
+            });
+            
+            calculateSchedule();
+        }
+        
+        function calculateSchedule() {
+            const twinsSelect = document.querySelector('select[name="boys_school"]');
+            const isTwinsMorning = twinsSelect.value === 'yes';
+            const meetingTime = document.querySelector('select[name="meeting_at"]').value;
+            const boysSchool = twinsSelect.value === 'yes';
+            
+            // Determine arrival deadline
+            let arriveTime = null;
+            if (meetingTime) {
+                arriveTime = meetingTime;
+            }
+            if (boysSchool) {
+                const schoolTime = '07:55';
+                if (!arriveTime || schoolTime < arriveTime) {
+                    arriveTime = schoolTime;
+                }
+            }
+            
+            if (!arriveTime) {
+                document.getElementById('sticky-results').classList.add('hidden');
+                return;
+            }
+            
+            // Calculate times
+            let transitMinutes = 0;
+            let homeMinutes = 0;
+            
+            // Get all activities and calculate
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                const activityDiv = checkbox.closest('.activity');
+                if (!activityDiv) return;
+                
+                const timeDisplay = activityDiv.querySelector('.time-display');
+                if (!timeDisplay) return;
+                
+                const twinsMins = parseInt(timeDisplay.dataset.twinsMins) || 0;
+                const noTwinsMins = parseInt(timeDisplay.dataset.noTwinsMins) || 0;
+                const minutes = isTwinsMorning ? twinsMins : noTwinsMins;
+                
+                const location = timeDisplay.dataset.location || '';
+                const isTransit = location === 'In Transit';
+                
+                if (checkbox.checked || checkbox.disabled) {
+                    if (isTransit) {
+                        transitMinutes += minutes;
+                    } else {
+                        homeMinutes += minutes;
+                    }
+                }
+            });
+            
+            // Calculate backwards from arrival
+            const [arriveHour, arriveMin] = arriveTime.split(':').map(Number);
+            const arriveDate = new Date(2025, 0, 1, arriveHour, arriveMin);
+            
+            const leaveDate = new Date(arriveDate.getTime() - transitMinutes * 60000);
+            const wakeDate = new Date(leaveDate.getTime() - homeMinutes * 60000);
+            
+            // Format times
+            function formatTime(date) {
+                let hours = date.getHours();
+                const minutes = date.getMinutes();
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12 || 12;
+                return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+            }
+            
+            document.getElementById('wake-time').textContent = formatTime(wakeDate);
+            document.getElementById('leave-time').textContent = formatTime(leaveDate);
+            document.getElementById('arrive-time').textContent = formatTime(arriveDate);
+            document.getElementById('home-minutes').textContent = homeMinutes;
+            document.getElementById('transit-minutes').textContent = transitMinutes;
+            
+            document.getElementById('sticky-results').classList.remove('hidden');
+        }
+        
+        let draggedElement = null;
+
+        function handleDragStart(e) {
+            draggedElement = e.currentTarget;
+            e.currentTarget.style.opacity = '0.4';
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            
+            const target = e.currentTarget;
+            // Only allow drop if same section
+            if (draggedElement && target !== draggedElement && 
+                target.dataset.section === draggedElement.dataset.section) {
+                target.style.borderTop = '2px solid #007bff';
+            }
+            return false;
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            e.currentTarget.style.borderTop = '';
+            
+            const target = e.currentTarget;
+            if (draggedElement && target !== draggedElement && 
+                target.dataset.section === draggedElement.dataset.section) {
+                
+                const draggedIdx = parseInt(draggedElement.dataset.idx);
+                const targetIdx = parseInt(target.dataset.idx);
+                
+                // Reorder activities
+                fetch('/reorder_activity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        dragged_idx: draggedIdx,
+                        target_idx: targetIdx
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            e.currentTarget.style.opacity = '1';
+            // Remove all border highlights
+            document.querySelectorAll('.activity').forEach(el => {
+                el.style.borderTop = '';
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            const twinsSelect = document.querySelector('select[name="boys_school"]');
+            const meetingSelect = document.querySelector('select[name="meeting_at"]');
+            
+            if (twinsSelect) {
+                twinsSelect.addEventListener('change', updateTimes);
+                updateTimes();
+            }
+            
+            if (meetingSelect) {
+                meetingSelect.addEventListener('change', calculateSchedule);
+            }
+            
+            // Listen to all checkboxes
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', calculateSchedule);
+            });
+            
+            calculateSchedule();
+        });
+    </script>
+</head>
+<body>
+    <div id="sticky-results" class="sticky-results hidden">
+        <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
+            <div class="time-row">
+                <span class="time-label">⏰ Wake Up:</span>
+                <span class="time-value wake-time" id="wake-time">--:--</span>
+            </div>
+            <div class="time-row">
+                <span class="time-label">🚗 Leave:</span>
+                <span class="time-value leave-time" id="leave-time">--:--</span>
+            </div>
+            <div class="time-row">
+                <span class="time-label">📍 Arrive:</span>
+                <span class="time-value arrive-time" id="arrive-time">--:--</span>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 10px; font-size: 0.85em; color: #666;">
+            Home: <span id="home-minutes">0</span> min | Transit: <span id="transit-minutes">0</span> min
+        </div>
+    </div>
+    
+    <h1>Getting Ready Timing Calculator</h1>
+    
+    <div style="margin-bottom: 20px;">
+        <a href="/timer" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">⏱️ Timer Activities</a>
+        <a href="/history" style="display: inline-block; background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">📊 History & Insights</a>
+        <a href="/manage_activities" style="display: inline-block; background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">⚙️ Manage Activities</a>
+    </div>
+    
+    <form>
+        <h2>1. Today's Schedule</h2>
+        <div class="section">
+            <label><strong>First work meeting/event start time:</strong></label>
+            <select name="meeting_at">
+                <option value="">-- Select Time --</option>
+                {% for hour in range(6, 12) %}
+                    {% for minute in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] %}
+                        {% set time_val = "%02d:%02d"|format(hour, minute) %}
+                        {% set display_hour = hour if hour == 12 else hour %}
+                        {% set is_default = (time_val == "08:30" and not meeting_at) %}
+                        <option value="{{ time_val }}" {% if meeting_at == time_val or is_default %}selected{% endif %}>
+                            {{ display_hour }}:{{ "%02d"|format(minute) }} AM
+                        </option>
+                    {% endfor %}
+                {% endfor %}
+            </select>
+            <br><br>
+            
+            <label><strong>Am I driving big twins into school?</strong></label>
+            <select name="boys_school">
+                <option value="no" {% if not boys_school %}selected{% endif %}>No</option>
+                <option value="yes" {% if boys_school %}selected{% endif %}>Yes (need to be at school by 7:55 AM)</option>
+            </select>
+        </div>
+
+        <h2>2. Select Today's Activities</h2>
+        
+        {% set section_order = ['Knowns', 'Daily External Variables', 'Daily Minimum Activities', 'Add Ons'] %}
+        {% for section_name in section_order %}
+            {% if section_name in sections %}
+                <h3>{{ section_name }}</h3>
+                <div class="section">
+                    {% if section_name == 'Knowns' %}
+                        <p style="color: #666; font-style: italic; margin-bottom: 10px;">
+                            These are automatically included in your calculation.
+                        </p>
+                    {% elif section_name == 'Daily External Variables' %}
+                        <p style="color: #666; font-style: italic; margin-bottom: 10px;">
+                            Select any conditions that apply today:
+                        </p>
+                    {% elif section_name == 'Add Ons' %}
+                        <p style="color: #666; font-style: italic; margin-bottom: 10px;">
+                            Check the ones you plan to do today:
+                        </p>
+                    {% endif %}
+                    
+                    {% for item in sections[section_name] %}
+                        <div class="activity" draggable="true" data-idx="{{ item.idx }}" data-section="{{ section_name }}" 
+                             style="display: flex; align-items: center; gap: 10px; cursor: move; padding: 8px; margin: 2px 0; border-radius: 4px; background: #f9f9f9;"
+                             ondragstart="handleDragStart(event)" 
+                             ondragover="handleDragOver(event)" 
+                             ondrop="handleDrop(event)" 
+                             ondragend="handleDragEnd(event)">
+                            <span style="color: #999; cursor: grab; user-select: none;" title="Drag to reorder">☰</span>
+                            <input type="checkbox" 
+                                   name="activities" 
+                                   value="{{ item.idx }}" 
+                                   id="activity_{{ item.idx }}"
+                                   {% if section_name == 'Knowns' %}checked disabled{% endif %}
+                                   {% if section_name == 'Daily Minimum Activities' and not item.selected %}checked{% endif %}
+                                   {% if item.selected %}checked{% endif %}>
+                            <label for="activity_{{ item.idx }}" style="flex: 1;">
+                                <strong>{{ item.activity.name }}</strong> 
+                                (<span class="time-display" 
+                                       data-twins-mins="{{ item.activity.minutes_twins }}"
+                                       data-no-twins-mins="{{ item.activity.minutes_no_twins }}"
+                                       data-location="{{ item.activity.location }}">
+                                    {% if twins_morning %}{{ item.activity.minutes_twins }}{% else %}{{ item.activity.minutes_no_twins }}{% endif %} min
+                                </span>
+                                {% set avg = item.activity.twins_avg if twins_morning else item.activity.no_twins_avg %}
+                                {% set estimate = item.activity.minutes_twins if twins_morning else item.activity.minutes_no_twins %}
+                                {% if avg %}
+                                    | Avg: <span style="color: #667eea; font-weight: bold;">{{ avg }} min</span>
+                                    {% set diff = avg - estimate %}
+                                    {% if diff > 1 %}
+                                        <span style="color: #dc3545; font-size: 0.85em;">(+{{ '%.1f'|format(diff) }})</span>
+                                    {% elif diff < -1 %}
+                                        <span style="color: #28a745; font-size: 0.85em;">({{ '%.1f'|format(diff) }})</span>
+                                    {% endif %}
+                                {% endif %})
+                                {% if item.activity.note %}
+                                    <span class="note"> - {{ item.activity.note }}</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+        
+        <input type="hidden" name="twins_morning" value="{% if twins_morning %}yes{% else %}no{% endif %}">
+    </form>
+
+    {% if wakeup_time %}
+        <div class="results">
+            <h2>⏰ Your Schedule</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                <tr style="background: #f0f8ff;">
+                    <td style="padding: 15px; font-size: 1.1em;"><strong>Wake Up:</strong></td>
+                    <td style="padding: 15px; font-size: 1.5em; color: #007bff; text-align: right;"><strong>{{ wakeup_time }}</strong></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; font-size: 0.9em; color: #666;">Get ready at home</td>
+                    <td style="padding: 10px; text-align: right; color: #666;">{{ home_time }} minutes</td>
+                </tr>
+                <tr style="background: #f0f8ff;">
+                    <td style="padding: 15px; font-size: 1.1em;"><strong>Leave House:</strong></td>
+                    <td style="padding: 15px; font-size: 1.5em; color: #28a745; text-align: right;"><strong>{{ leave_time }}</strong></td>
+                </tr>
+                <tr style="background: #f0f8ff;">
+                    <td style="padding: 15px; font-size: 1.1em;"><strong>Arrive at Work:</strong></td>
+                    <td style="padding: 15px; font-size: 1.5em; color: #dc3545; text-align: right;"><strong>{{ arrive_time }}</strong></td>
+                </tr>
+            </table>
+            <p style="margin-top: 15px; text-align: center; color: #666;">
+                <strong>Total time needed:</strong> {{ total_time }} minutes
+            </p>
+        </div>
+    {% endif %}
+
+    <hr style="margin-top: 40px;">
+    <p><a href="/manage_activities">Manage Activities Database</a></p>
+</body>
+</html>

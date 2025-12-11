@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Activities</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1400px; margin: 0 auto; padding: 20px; }
+        h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.9em; }
+        th { background: #007bff; color: white; }
+        button { background: #007bff; color: white; padding: 5px 15px; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .delete { background: #dc3545; }
+        .delete:hover { background: #c82333; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav-links { margin-bottom: 20px; }
+        .nav-links a { margin-right: 10px; }
+        .avg-display { font-weight: bold; color: #667eea; }
+        .variance-good { color: #28a745; }
+        .variance-bad { color: #dc3545; }
+        .no-data { color: #999; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>Manage Activities Database</h1>
+    <div class="nav-links">
+        <a href="/">← Back to Calculator</a>
+        <a href="/timer">Timer Activities</a>
+        <a href="/history">📊 View History & Insights</a>
+    </div>
+    
+    <a href="/add_activity"><button>Add New Activity</button></a>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Section</th>
+                <th>Name</th>
+                <th>Estimate (Twins)</th>
+                <th>Actual Avg (Twins)</th>
+                <th>Estimate (No Twins)</th>
+                <th>Actual Avg (No Twins)</th>
+                <th>Records</th>
+                <th>Location</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for activity in activities %}
+                {% set idx = loop.index0 %}
+                <tr>
+                    <td>{{ activity.section }}</td>
+                    <td><strong>{{ activity.name }}</strong></td>
+                    <td>{{ activity.minutes_twins }} min</td>
+                    <td>
+                        {% if activity.twins_avg %}
+                            <span class="avg-display">{{ activity.twins_avg }} min</span>
+                            {% set diff = activity.twins_avg - activity.minutes_twins %}
+                            {% if diff > 1 %}
+                                <span class="variance-bad">(+{{ '%.1f'|format(diff) }})</span>
+                            {% elif diff < -1 %}
+                                <span class="variance-good">({{ '%.1f'|format(diff) }})</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="no-data">—</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ activity.minutes_no_twins }} min</td>
+                    <td>
+                        {% if activity.no_twins_avg %}
+                            <span class="avg-display">{{ activity.no_twins_avg }} min</span>
+                            {% set diff = activity.no_twins_avg - activity.minutes_no_twins %}
+                            {% if diff > 1 %}
+                                <span class="variance-bad">(+{{ '%.1f'|format(diff) }})</span>
+                            {% elif diff < -1 %}
+                                <span class="variance-good">({{ '%.1f'|format(diff) }})</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="no-data">—</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ activity.record_count }}</td>
+                    <td>{{ activity.location }}</td>
+                    <td>{{ activity.note }}</td>
+                    <td>
+                        <a href="/edit_activity/{{ idx }}"><button>Edit</button></a>
+                        <form method="post" action="/remove_activity/{{ idx }}" style="display:inline">
+                            <button type="submit" class="delete" onclick="return confirm('Are you sure?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

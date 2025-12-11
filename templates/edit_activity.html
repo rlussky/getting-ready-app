@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Activity</title>
+</head>
+<body>
+    <h1>Edit Activity</h1>
+    <form method="post">
+        <label>Section:</label>
+        <input type="text" name="section" value="{{ activity.section }}" required><br>
+        <label>Name:</label>
+        <input type="text" name="name" value="{{ activity.name }}" required><br>
+        <label>Minutes (Twins):</label>
+        <input type="number" name="minutes_twins" value="{{ activity.minutes_twins }}" min="0" required><br>
+        <label>Minutes (No Twins):</label>
+        <input type="number" name="minutes_no_twins" value="{{ activity.minutes_no_twins }}" min="0" required><br>
+        <label>Location:</label>
+        <input type="text" name="location" value="{{ activity.location }}"><br>
+        <label>Note:</label>
+        <input type="text" name="note" value="{{ activity.note }}"><br>
+        <button type="submit">Save</button>
+    </form>
+    <a href="/">Back to Home</a>
+</body>
+</html>

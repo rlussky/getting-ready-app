@@ -1,0 +1,228 @@
+import json
+from flask import Flask, render_template, request, redirect, url_for, session
+from datetime import datetime, timedelta
+import os
+
+app = Flask(__name__)
+app.secret_key = os.urandom(24)
+
+ACTIVITIES_DB = 'activities_db.json'
+
+def load_activities():
+    if not os.path.exists(ACTIVITIES_DB):
+        return []
+    with open(ACTIVITIES_DB, 'r') as f:
+        try:
+            data = json.load(f)
+            if isinstance(data, list):
+                return data
+            else:
+                return []
+        except Exception:
+            return []
+
+def save_activities(activities):
+    with open(ACTIVITIES_DB, 'w') as f:
+        json.dump(activities, f, indent=2)
+
+
+
+
+@app.route('/add_activity', methods=['GET', 'POST'])
+def add_activity():
+    if request.method == 'POST':
+        activities = load_activities()
+        new_activity = {
+            'section': request.form['section'],
+            'name': request.form['name'],
+            'minutes_twins': int(request.form['minutes_twins']),
+            'minutes_no_twins': int(request.form['minutes_no_twins']),
+            'location': request.form['location'],
+            'note': request.form['note']
+        }
+        activities.append(new_activity)
+        save_activities(activities)
+        return redirect(url_for('home'))
+    return render_template('edit_activity.html', activity={}, idx=None, add_mode=True)
+
+@app.route('/remove_activity/<int:idx>', methods=['POST'])
+def remove_activity(idx):
+    activities = load_activities()
+    activities.pop(idx)
+    save_activities(activities)
+    return redirect(url_for('home'))
+
+import json
+
+ACTIVITIES_DB = 'activities_db.json'
+
+def load_activities():
+app.secret_key = os.urandom(24)
+
+def get_leave_by():
+    leave_by = session.get('leave_by')
+    if leave_by:
+        return datetime.strptime(leave_by, '%H:%M')
+    meeting_at = session.get('meeting_at')
+    if meeting_at:
+        return datetime.strptime(meeting_at, '%H:%M')
+    boys_school = session.get('boys_school')
+    if boys_school == 'yes':
+        return datetime.strptime('07:45', '%H:%M')
+    return None
+
+@app.route('/set_leave_by', methods=['POST'])
+def set_leave_by():
+    work_by = request.form.get('work_by')
+    meeting_at = request.form.get('meeting_at')
+    boys_school = request.form.get('boys_school')
+    leave_times = []
+    if work_by:
+        t = datetime.strptime(work_by, '%H:%M')
+        t = (t - timedelta(minutes=30)).time()
+        leave_times.append(t)
+        session['leave_by'] = t.strftime('%H:%M')
+    if meeting_at:
+        t = datetime.strptime(meeting_at, '%H:%M')
+        t = (t - timedelta(minutes=30)).time()
+        leave_times.append(t)
+        session['meeting_at'] = t.strftime('%H:%M')
+    if boys_school == 'yes':
+        t = datetime.strptime('07:45', '%H:%M').time()
+        leave_times.append(t)
+        session['boys_school'] = 'yes'
+    else:
+        session['boys_school'] = 'no'
+    if leave_times:
+        earliest = min(leave_times)
+        session['earliest_leave'] = earliest.strftime('%H:%M')
+    return redirect(url_for('home'))
+from datetime import datetime, timedelta
+import os
+
+app = Flask(__name__)
+app.secret_key = os.urandom(24)
+
+def get_routine():
+    return session.get('routine', [])
+
+def get_weather():
+    return session.get('weather', 'clear')
+
+def get_selected():
+    routine = get_routine()
+    return [item for item in routine if item.get('selected', True)]
+
+def weather_time(weather):
+    if weather == 'rainy':
+        return 5
+    elif weather == 'snowy':
+        return 15
+    return 0
+
+@app.route('/', methods=['GET'])
+def home():
+    activities = load_activities()
+    routine = session.get('routine', [])
+    weather = get_weather()
+    total_time = sum(item.get('minutes_twins', 0) for item in routine if item.get('selected', True)) + weather_time(weather)
+    earliest_leave = session.get('earliest_leave')
+    if earliest_leave:
+        leave_by = datetime.strptime(earliest_leave, '%H:%M')
+        wakeup_time = (leave_by - timedelta(minutes=total_time)).strftime('%I:%M %p')
+    else:
+        now = datetime.now()
+        wakeup_time = (now + timedelta(minutes=total_time)).strftime('%I:%M %p')
+    return render_template('home.html', activities=activities, routine=routine, total_time=total_time, wakeup_time=wakeup_time)
+
+@app.route('/add_to_routine/<int:idx>', methods=['POST'])
+def add_to_routine(idx):
+    activities = load_activities()
+    routine = session.get('routine', [])
+    activity = activities[idx].copy()
+    activity['selected'] = True
+    routine.append(activity)
+    session['routine'] = routine
+    return redirect(url_for('home'))
+
+@app.route('/remove_from_routine/<int:idx>', methods=['POST'])
+def remove_from_routine(idx):
+    routine = session.get('routine', [])
+    if 0 <= idx < len(routine):
+        routine.pop(idx)
+        session['routine'] = routine
+    return redirect(url_for('home'))
+
+@app.route('/edit_activity/<int:idx>', methods=['GET', 'POST'])
+def edit_activity(idx):
+    activities = load_activities()
+    activity = activities[idx]
+    if request.method == 'POST':
+        activity['name'] = request.form['name']
+        activity['minutes_twins'] = int(request.form['minutes_twins'])
+        activity['minutes_no_twins'] = int(request.form['minutes_no_twins'])
+        activity['location'] = request.form['location']
+        activity['note'] = request.form['note']
+        activity['section'] = request.form['section']
+        activities[idx] = activity
+        save_activities(activities)
+        return redirect(url_for('home'))
+    return render_template('edit_activity.html', activity=activity, idx=idx)
+
+@app.route('/add_activity', methods=['POST'])
+def add_activity():
+    activity = request.form['activity']
+    minutes = int(request.form['minutes'])
+    routine = get_routine()
+    routine.append({'name': activity, 'minutes': minutes, 'selected': True})
+    session['routine'] = routine
+    return redirect(url_for('home'))
+
+@app.route('/set_weather', methods=['POST'])
+def set_weather():
+    session['weather'] = request.form['weather']
+    return redirect(url_for('home'))
+
+@app.route('/update_routine', methods=['POST'])
+def update_routine():
+    routine = get_routine()
+    selected = request.form.getlist('selected')
+    for idx, item in enumerate(routine):
+        item['selected'] = str(idx) in selected
+    move = request.form.get('move')
+    if move:
+        direction, idx = move.split('-')
+        idx = int(idx)
+        if direction == 'up' and idx > 0:
+            routine[idx-1], routine[idx] = routine[idx], routine[idx-1]
+        elif direction == 'down' and idx < len(routine)-1:
+            routine[idx+1], routine[idx] = routine[idx], routine[idx+1]
+    session['routine'] = routine
+    return redirect(url_for('home'))
+
+@app.route('/save_routine', methods=['POST'])
+def save_routine():
+    routine = get_routine()
+    with open('saved_routine.txt', 'w') as f:
+        for item in routine:
+            f.write(f"{item['name']},{item['minutes']},{item['selected']}\n")
+    return redirect(url_for('home'))
+
+@app.route('/start_timer', methods=['POST'])
+def start_timer():
+    session['current_idx'] = 0
+    return redirect(url_for('timer'))
+
+@app.route('/timer', methods=['GET'])
+def timer():
+    routine = get_selected()
+    current_idx = session.get('current_idx', 0)
+    return render_template('timer.html', routine=routine, current_idx=current_idx)
+
+@app.route('/next_task', methods=['POST'])
+def next_task():
+    session['current_idx'] = session.get('current_idx', 0) + 1
+    return redirect(url_for('timer'))
+
+if __name__ == "__main__":
+    app.run(debug=True)

@@ -1,0 +1,48 @@
+,First work meeting/event start time:,,,,"drop down menu for selecting times in 5 minute increments, like 8:10, 8:15, 8:20, etc"
+,Am I driving big twins into school?,,,,"If yes, Need to be at the kids school by 7:55 at the latest, 7:50 is even better"
+,,,,,
+,,Minutes if Big Twins,"Minutes
+if no
+Big Twins (same unless noted)",Location of Activity,Note
+Knowns,Drive to work,30,20,In Transit,
+,Walking time from parking,10,,In Transit,
+,,,,,
+,,,,,
+,,,,In Transit,
+Daily external variables to input:,Light rain/heavy fog/light snow?,7,8,In Transit,
+,Heavy rain/heavy snow/icey?,10,12,In Transit,
+,Weather emergency,15,15,In Transit,
+,Am I injured/sick?,7,,In Transit,"need to plan additional longer walking time, additional longer bathroom stops, etc"
+,,,,,
+Daily minimum activities ,"Get out of bed, use bathroom",15,,bedroom,
+,Set up pump supplies,5,,pumping space,
+,Change baby,5,,pumping space,
+,Pump/feed baby,30,,pumping space,
+,Put away pumps/transition supplies to next floor,10,,pumping space,
+,Get undressed,2,,bedroom,
+,Basic skincare,3,,bathroom,
+,Basic layer of makeup,5,,bathroom,
+,Brush teeth,2,,bathroom,
+,"Get dressed, apply deoderant",3,,bedroom,
+,Gather pump/lunch supplies and put on shoes,5,,main floor,
+,Load up in car,5,2,main floor,
+,,,,,
+,,,,,
+,checkboxes for the ones I plan to do,,,,
+Add Ons,Was retainer worn last night?,2,,bathroom,rinse and put in jar with cleanser
+,Choose outfit,3,,bedroom,if not done night before
+,Basic shower,15,,shower,"(start shower, wash body, squeegie, dry off)"
+,Shave legs,20,,shower,
+,Wash face & exfoliate,4,,shower,
+,Wash hair  ,8,,shower,"Wash, condition, clean up hair fallout"
+,Apply curly products in shower,8,,shower,"Squish to condish, rinse hair upside down, mousse, curl cream, hair plopped"
+,Countertop curly hair products,5,,bathroom,"gel, hair spray, plop"
+,Quick diffuse dry curly hair,10,,bathroom,"clip, diffuse just top layer"
+,Regular diffuse dry curly hair,20,,bathroom,"clip, diffuse all"
+,More careful makeup application,8,,bathroom,
+,Blow dry straight,20,,bathroom,"apply straightening products, clip into sections, use blow dry brush"
+,Style blowout,15,,bathroom,curl/straigten where needed
+,Next day blowout neaten,8,,bathroom,"straighten roots, curl wonky bits"
+,Pin/Clip up unwashed hair,5,,,
+,Prepare a meal,8,,main floor,
+,Work pump supply prep,5,,main floor,if not done night before
