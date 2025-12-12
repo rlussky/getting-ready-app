@@ -38,6 +38,12 @@
         #schedule-summary .timeline-time { font-size: 0.95em; font-weight: 600; }
         #schedule-summary .timeline-label { margin-top: 0; }
         #schedule-summary .timeline-info { margin-top: 0; }
+
+        /* Drag-to-reorder styling for activities */
+        .activity-sortable .activity { display: flex; align-items: flex-start; gap: 8px; padding: 6px 4px; border: 1px dashed transparent; border-radius: 4px; }
+        .activity-sortable .activity.dragging { opacity: 0.65; border-color: #d0d7de; }
+        .activity-sortable .drag-handle { cursor: grab; user-select: none; font-size: 1.2em; line-height: 1; color: #888; padding: 2px 4px; }
+        .activity-sortable .drag-handle:active { cursor: grabbing; color: #555; }
     </style>
 </head>
 <body>
@@ -129,8 +135,9 @@
         {% set section_order = ['Daily External Variables', 'Daily Minimum Activities', 'Add Ons'] %}
         {% for section_name in section_order %}
             {% if section_name in sections %}
+                {% set sortable = section_name in ['Daily Minimum Activities', 'Add Ons'] %}
                 <h3>{{ section_name }}</h3>
-                <div class="section">
+                <div class="section{% if sortable %} activity-sortable{% endif %}" {% if sortable %}data-sortable="true"{% endif %}>
                     {% if section_name == 'Daily External Variables' %}
                         <p style="color: #666; font-style: italic; margin-bottom: 10px;">
                             Select any conditions that apply today (adds time to transit):
@@ -141,8 +148,12 @@
                         </p>
                     {% endif %}
                     {% for item in sections[section_name] %}
-                        <div class="activity">
-                            <span style="color: #999; cursor: grab; user-select: none;"></span>
+                        <div class="activity{% if sortable %} activity-draggable{% endif %}" {% if sortable %}data-idx="{{ item.idx }}" draggable="true"{% endif %}>
+                            {% if sortable %}
+                                <span class="drag-handle" aria-hidden="true" title="Drag to reorder">☰</span>
+                            {% else %}
+                                <span style="color: #999; cursor: grab; user-select: none;"></span>
+                            {% endif %}
                             <input type="checkbox" 
                                    name="activities" 
                                    value="{{ item.idx }}" 
@@ -265,6 +276,95 @@
             });
         });
     }
+
+    function getDragAfterElement(container, y) {
+        const items = [...container.querySelectorAll('.activity-draggable:not(.dragging)')];
+        return items.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset, element: child };
+            }
+            return closest;
+        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+    }
+
+    function collectSortableActivityOrder() {
+        const ids = [];
+        document.querySelectorAll('.activity-sortable .activity-draggable').forEach(item => {
+            const idx = parseInt(item.getAttribute('data-idx'), 10);
+            if (!Number.isNaN(idx)) {
+                ids.push(idx);
+            }
+        });
+        return ids;
+    }
+
+    function renumberActivities() {
+        let counter = 0;
+        document.querySelectorAll('#mainForm .activity').forEach(item => {
+            item.setAttribute('data-idx', counter);
+            const checkbox = item.querySelector('input[type="checkbox"][name="activities"]');
+            const label = item.querySelector('label');
+            if (checkbox) {
+                const newId = `activity_${counter}`;
+                checkbox.value = counter;
+                checkbox.id = newId;
+                if (label) {
+                    label.setAttribute('for', newId);
+                }
+            }
+            counter += 1;
+        });
+    }
+
+    function persistActivityOrder() {
+        const order = collectSortableActivityOrder();
+        if (!order.length) return;
+        fetch('/reorder_activity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to save order');
+            return res.json().catch(() => ({}));
+        })
+        .then(() => {
+            renumberActivities();
+            updateScheduleSummary();
+        })
+        .catch(err => console.error('Reorder failed', err));
+    }
+
+    function enableActivityDrag() {
+        document.querySelectorAll('.activity-sortable').forEach(container => {
+            container.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(container, e.clientY);
+                const dragging = container.querySelector('.dragging');
+                if (!dragging) return;
+                if (afterElement == null) {
+                    container.appendChild(dragging);
+                } else {
+                    container.insertBefore(dragging, afterElement);
+                }
+            });
+            container.addEventListener('drop', function(e) {
+                e.preventDefault();
+                persistActivityOrder();
+            });
+        });
+
+        document.querySelectorAll('.activity-draggable').forEach(item => {
+            item.addEventListener('dragstart', function() {
+                item.classList.add('dragging');
+            });
+            item.addEventListener('dragend', function() {
+                item.classList.remove('dragging');
+            });
+        });
+    }
     
     function updateScheduleSummary() {
         var form = document.getElementById('mainForm');
@@ -315,6 +415,7 @@
         attachAllListeners();
         toggleSchoolTime();
         updateScheduleSummary();
+        enableActivityDrag();
     });
     </script>
 

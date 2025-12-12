@@ -588,12 +588,52 @@ def delete_timing(activity_name, record_index):
 
 @app.route('/reorder_activity', methods=['POST'])
 def reorder_activity():
-    data = request.get_json()
+    data = request.get_json(force=True, silent=True) or {}
+
+    # New bulk reorder path: accepts `order` = list of activity indices (current order)
+    if 'order' in data:
+        order = data.get('order', [])
+        activities = load_activities()
+
+        if not isinstance(order, list) or not activities:
+            return {'success': False, 'error': 'Invalid payload'}, 400
+
+        max_idx = len(activities) - 1
+        if any((not isinstance(i, int)) or i < 0 or i > max_idx for i in order):
+            return {'success': False, 'error': 'Invalid indices'}, 400
+
+        # Preserve uniqueness and only reorder provided items; others stay in-place after them
+        seen = set()
+        filtered = []
+        for i in order:
+            if i in seen:
+                return {'success': False, 'error': 'Duplicate indices'}, 400
+            seen.add(i)
+            filtered.append(i)
+
+        # Keep non-reordered items in-place; only swap the targeted items into their existing slots
+        positions = [i for i in range(len(activities)) if i in seen]
+        if len(positions) != len(filtered):
+            return {'success': False, 'error': 'Mismatched indices'}, 400
+
+        reordered = list(activities)
+        for dest_pos, src_idx in zip(positions, filtered):
+            reordered[dest_pos] = activities[src_idx]
+
+        for idx, activity in enumerate(reordered):
+            activity['order'] = idx
+
+        save_activities(reordered)
+        return {'success': True, 'count': len(filtered)}
+
+    # Legacy single-move path retained for compatibility
     dragged_idx = data.get('dragged_idx')
     target_idx = data.get('target_idx')
     
     activities = load_activities()
     
+    if dragged_idx is None or target_idx is None:
+        return {'success': False, 'error': 'Invalid activity index'}, 400
     if dragged_idx < 0 or dragged_idx >= len(activities) or target_idx < 0 or target_idx >= len(activities):
         return {'success': False, 'error': 'Invalid activity index'}, 400
     
