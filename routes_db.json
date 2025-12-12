@@ -1,0 +1,44 @@
+[
+  {
+    "from": "home",
+    "to": "school",
+    "minutes": 10,
+    "description": "Drive to school"
+  },
+  {
+    "from": "home",
+    "to": "daycare",
+    "minutes": 15,
+    "description": "Drive to daycare"
+  },
+  {
+    "from": "home",
+    "to": "work",
+    "minutes": 20,
+    "description": "Direct drive to work"
+  },
+  {
+    "from": "school",
+    "to": "work",
+    "minutes": 20,
+    "description": "Drive from school to work"
+  },
+  {
+    "from": "daycare",
+    "to": "work",
+    "minutes": 15,
+    "description": "Drive from daycare to work"
+  },
+  {
+    "from": "school",
+    "to": "daycare",
+    "minutes": 15,
+    "description": "Drive from school to daycare"
+  },
+  {
+    "from": "daycare",
+    "to": "school",
+    "minutes": 15,
+    "description": "Drive from daycare to school"
+  }
+]

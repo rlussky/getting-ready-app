@@ -1,12 +1,36 @@
 import json
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from datetime import datetime, timedelta
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+
+@app.route('/schedule_json', methods=['POST'])
+def schedule_json():
+    school_arrival_time = request.form.get('school_arrival_time')
+    work_meeting_time = request.form.get('work_meeting_time')
+    selected_activities = request.form.getlist('activities')
+    journey_stops = []
+    stop_index = 0
+    while True:
+        location = request.form.get(f'stop_location_{stop_index}')
+        if not location:
+            break
+        journey_stops.append({'location': location})
+        stop_index += 1
+    boy_morning = any(stop.get('location') == 'school' for stop in journey_stops)
+    all_activities = load_activities()
+    schedule = calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time)
+    return jsonify(schedule or {})
+
 ACTIVITIES_DB = 'activities_db.json'
+ROUTES_DB = 'routes_db.json'
 
 # Database functions
 def load_activities():
@@ -16,11 +40,9 @@ def load_activities():
         try:
             data = json.load(f)
             if isinstance(data, list):
-                # Initialize order field if it doesn't exist and sort by order
                 for idx, activity in enumerate(data):
                     if 'order' not in activity:
                         activity['order'] = idx
-                # Sort by order field
                 data.sort(key=lambda x: x.get('order', 999))
                 return data
             else:
@@ -32,88 +54,64 @@ def save_activities(activities):
     with open(ACTIVITIES_DB, 'w') as f:
         json.dump(activities, f, indent=2)
 
-# Helper functions
-def get_routine():
-    return session.get('routine', [])
+def load_routes():
+    if not os.path.exists(ROUTES_DB):
+        return []
+    with open(ROUTES_DB, 'r') as f:
+        try:
+            return json.load(f)
+        except Exception:
+            return []
 
-def get_weather():
-    return session.get('weather', 'clear')
+def save_routes(routes):
+    with open(ROUTES_DB, 'w') as f:
+        json.dump(routes, f, indent=2)
 
-def get_selected():
-    routine = get_routine()
-    return [item for item in routine if item.get('selected', True)]
-
-def weather_time(weather):
-    if weather == 'rainy':
-        return 5
-    elif weather == 'snowy':
-        return 15
-    return 0
-
-def get_leave_by():
-    leave_by = session.get('leave_by')
-    if leave_by:
-        return datetime.strptime(leave_by, '%H:%M')
-    meeting_at = session.get('meeting_at')
-    if meeting_at:
-        return datetime.strptime(meeting_at, '%H:%M')
-    boys_school = session.get('boys_school')
-    if boys_school == 'yes':
-        return datetime.strptime('07:45', '%H:%M')
+def get_route(from_loc, to_loc):
+    """Find a route between two locations"""
+    routes = load_routes()
+    for route in routes:
+        if route['from'] == from_loc and route['to'] == to_loc:
+            return route
     return None
+
+def get_travel_minutes(from_loc, to_loc):
+    """Get travel time including 10-min buffer for 'to work' routes"""
+    route = get_route(from_loc, to_loc)
+    if not route:
+        return None
+    minutes = route['minutes']
+    if to_loc == 'work':
+        minutes += 10  # 10-minute walk-in buffer
+    return minutes
+
+def get_available_destinations(from_loc):
+    """Get all possible destinations from a location"""
+    routes = load_routes()
+    return [r for r in routes if r['from'] == from_loc]
 
 # Routes
 @app.route('/', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
         # Save form data
-        session['twins_morning'] = request.form.get('twins_morning') == 'yes'
-        session['meeting_at'] = request.form.get('meeting_at')
-        session['boys_school'] = request.form.get('boys_school') == 'yes'
+        session['school_arrival_time'] = request.form.get('school_arrival_time')
+        session['work_meeting_time'] = request.form.get('work_meeting_time')
         session['selected_activities'] = request.form.getlist('activities')
-        
-        # Calculate what time we need to arrive at work
-        # Work backwards to determine leave time
-        twins_morning = session.get('twins_morning')
-        meeting_at = session.get('meeting_at')
-        boys_school = session.get('boys_school')
-        
-        work_arrival_time = None
-        if meeting_at:
-            work_arrival_time = datetime.strptime(meeting_at, '%H:%M')
-        
-        # Determine when we need to leave home
-        if twins_morning and boys_school:
-            # Need to drop kids at school by 7:55, then drive to work
-            # Two constraints: 
-            # 1. Be at school by 7:55 (need to leave home 10 min before)
-            # 2. Be at work for meeting (need to leave home 30 min before meeting)
-            school_time = datetime.strptime('07:55', '%H:%M')
-            leave_for_school = school_time - timedelta(minutes=10)
-            
-            if work_arrival_time:
-                # Leave 30 min before work (10 to school + 20 school to work)
-                leave_for_work = work_arrival_time - timedelta(minutes=30)
-                # Take the earlier time
-                earliest_leave = min(leave_for_school, leave_for_work)
-            else:
-                earliest_leave = leave_for_school
-            
-            session['leave_by_time'] = earliest_leave.strftime('%H:%M')
-            session['arrive_at_work'] = work_arrival_time.strftime('%H:%M') if work_arrival_time else None
-        elif work_arrival_time:
-            # Just going to work (no school drop-off)
-            # 20 minutes direct to work
-            leave_for_work = work_arrival_time - timedelta(minutes=20)
-            session['leave_by_time'] = leave_for_work.strftime('%H:%M')
-            session['arrive_at_work'] = work_arrival_time.strftime('%H:%M')
-        else:
-            session['leave_by_time'] = None
-            session['arrive_at_work'] = None
+
+        # Save journey stops (locations only, no times)
+        journey_stops = []
+        stop_index = 0
+        while True:
+            location = request.form.get(f'stop_location_{stop_index}')
+            if not location:
+                break
+            journey_stops.append({'location': location})
+            stop_index += 1
+        session['journey_stops'] = journey_stops
     
     # Load activities and group by section
     all_activities = load_activities()
-    twins_morning = session.get('twins_morning', False)
     selected_activities = session.get('selected_activities', [])
     
     # Add statistics to activities
@@ -141,113 +139,252 @@ def home():
             'selected': str(idx) in selected_activities
         })
     
-    # Calculate times - separate HOME and TRANSIT activities
+    # Calculate journey times
+    journey_stops = session.get('journey_stops', [])
+    boy_morning = any(stop.get('location') == 'school' for stop in journey_stops)
+    school_arrival_time = session.get('school_arrival_time', None)
+    work_meeting_time = session.get('work_meeting_time', None)
+    schedule = calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time)
+
+    # Get available routes for journey builder
+    routes = load_routes()
+    all_locations = sorted(list(set([r['from'] for r in routes] + [r['to'] for r in routes])))
+
+    return render_template('home.html',
+                         sections=sections,
+                         schedule=schedule,
+                         boy_morning=boy_morning,
+                         school_arrival_time=school_arrival_time,
+                         work_meeting_time=work_meeting_time,
+                         journey_stops=journey_stops,
+                         all_locations=all_locations,
+                         routes=routes)
+
+def calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time):
+    """Calculate the complete schedule based on selected stops and constraints."""
+    if not journey_stops or len(journey_stops) == 0:
+        return None
+
+    stops_list = [s.get('location') for s in journey_stops]
+
+    # Calculate home activity time and external variable bump
     home_time = 0
-    additional_transit_time = 0
-    
-    # Add Knowns that are at home (not "Drive to work")
-    for idx, activity in enumerate(all_activities):
-        if activity['section'] == 'Knowns' and activity.get('location') != 'In Transit':
-            if twins_morning:
-                home_time += activity.get('minutes_twins', 0)
-            else:
-                home_time += activity.get('minutes_no_twins', 0)
-    
-    # Add selected activities - separate home vs transit
+    external_bump = 0
     for idx_str in selected_activities:
-        idx = int(idx_str)
-        if idx < len(all_activities):
-            activity = all_activities[idx]
-            # Don't double-count Knowns
-            if activity['section'] != 'Knowns':
-                minutes = activity.get('minutes_twins', 0) if twins_morning else activity.get('minutes_no_twins', 0)
-                if activity.get('location') == 'In Transit':
-                    additional_transit_time += minutes
+        try:
+            idx = int(idx_str)
+            if idx < len(all_activities):
+                activity = all_activities[idx]
+                minutes = activity.get('minutes_no_twins', 0)
+                if activity.get('section') == 'Daily External Variables':
+                    external_bump += minutes
                 else:
                     home_time += minutes
-    
-    # Calculate wake-up and leave times
-    wakeup_time = None
-    leave_time = None
-    arrive_time_str = None
-    leave_by = session.get('leave_by_time')
-    arrive_at = session.get('arrive_at_work')
-    
-    # Adjust leave time for additional transit time (weather conditions, etc.)
-    if leave_by and additional_transit_time > 0:
-        leave_dt = datetime.strptime(leave_by, '%H:%M')
-        # Need to leave earlier to account for extra transit time
-        leave_dt = leave_dt - timedelta(minutes=additional_transit_time)
-        leave_by = leave_dt.strftime('%H:%M')
-    
-    if leave_by:
-        # We know when to leave home (already calculated above)
-        leave_dt = datetime.strptime(leave_by, '%H:%M')
-        leave_time = leave_dt.strftime('%I:%M %p')
-        
-        # Wake-up time = leave time - home activity time
-        wakeup_dt = leave_dt - timedelta(minutes=home_time)
-        wakeup_time = wakeup_dt.strftime('%I:%M %p')
-    
-    if arrive_at:
-        arrive_dt = datetime.strptime(arrive_at, '%H:%M')
-        arrive_time_str = arrive_dt.strftime('%I:%M %p')
-    
-    total_time = home_time
-    
-    return render_template('home.html', 
-                         sections=sections, 
-                         twins_morning=twins_morning,
-                         total_time=total_time,
-                         home_time=home_time,
-                         wakeup_time=wakeup_time,
-                         leave_time=leave_time,
-                         arrive_time=arrive_time_str,
-                         meeting_at=session.get('meeting_at', ''),
-                         boys_school=session.get('boys_school', False))
+        except (ValueError, IndexError) as e:
+            logger.warning(f"Invalid activity index: {idx_str}. Error: {e}")
+            continue
 
-@app.route('/set_leave_by', methods=['POST'])
-def set_leave_by():
-    work_by = request.form.get('work_by')
-    meeting_at = request.form.get('meeting_at')
-    boys_school = request.form.get('boys_school')
-    leave_times = []
-    if work_by:
-        t = datetime.strptime(work_by, '%H:%M')
-        t = (t - timedelta(minutes=30)).time()
-        leave_times.append(t)
-        session['leave_by'] = t.strftime('%H:%M')
-    if meeting_at:
-        t = datetime.strptime(meeting_at, '%H:%M')
-        t = (t - timedelta(minutes=30)).time()
-        leave_times.append(t)
-        session['meeting_at'] = t.strftime('%H:%M')
-    if boys_school == 'yes':
-        t = datetime.strptime('07:45', '%H:%M').time()
-        leave_times.append(t)
-        session['boys_school'] = 'yes'
-    else:
-        session['boys_school'] = 'no'
-    if leave_times:
-        earliest = min(leave_times)
-        session['earliest_leave'] = earliest.strftime('%H:%M')
-    return redirect(url_for('home'))
+    # Determine constraints
+    constraints = []
+    if boy_morning and school_arrival_time and 'school' in stops_list:
+        try:
+            datetime.strptime(school_arrival_time, '%H:%M')
+            constraints.append(('school', school_arrival_time))
+        except ValueError:
+            logger.warning(f"Invalid school arrival time: {school_arrival_time}")
+            return None
+    if work_meeting_time and 'work' in stops_list:
+        try:
+            datetime.strptime(work_meeting_time, '%H:%M')
+            constraints.append(('work', work_meeting_time))
+        except ValueError:
+            logger.warning(f"Invalid work meeting time: {work_meeting_time}")
+            return None
+    if not constraints:
+        return None
+
+    # For each constraint, calculate the required leave time from home
+    def calc_leave_home_time(target_stop, arrival_time):
+        # Work backwards from arrival_time at target_stop to home
+        try:
+            current_time = datetime.strptime(arrival_time, '%H:%M')
+        except ValueError as e:
+            logger.error(f"Failed to parse time {arrival_time}: {e}")
+            return None, None
+        # Do not shift the arrival time; apply external bump per transit leg instead
+        timeline = []
+        stops = [s['location'] for s in journey_stops]
+        if target_stop not in stops:
+            return None, None
+        idx = stops.index(target_stop)
+        # Build base leg durations from home to target_stop
+        base_legs = []
+        for i in range(0, idx):
+            base_travel = get_travel_minutes(journey_stops[i]['location'], journey_stops[i+1]['location'])
+            if base_travel is None:
+                logger.warning(f"No route found: {journey_stops[i]['location']} -> {journey_stops[i+1]['location']}")
+                return None, None
+            base_legs.append(base_travel)
+        # Distribute external bump proportionally across legs
+        def distribute_bump(base_list, total):
+            if not base_list or not total:
+                return [0] * len(base_list)
+            total_base = sum(base_list)
+            # Initial proportional allocation
+            alloc = [int((b / total_base) * total) for b in base_list]
+            # Fix rounding to match total
+            diff = total - sum(alloc)
+            # Distribute remaining minutes by descending fractional part
+            fracs = sorted(
+                [(i, (base_list[i] / total_base) * total - alloc[i]) for i in range(len(base_list))],
+                key=lambda x: x[1], reverse=True
+            )
+            for k in range(diff):
+                alloc[fracs[k % len(base_list)][0]] += 1
+            return alloc
+        bump_per_leg = distribute_bump(base_legs, external_bump)
+        # Go backwards from target_stop to home applying per-leg bumps
+        for i in range(idx, 0, -1):
+            base_travel = base_legs[i-1]
+            add_bump = bump_per_leg[i-1] if bump_per_leg else 0
+            travel_minutes = base_travel + add_bump
+            current_time = current_time - timedelta(minutes=travel_minutes)
+            route = get_route(journey_stops[i-1]['location'], journey_stops[i]['location'])
+            timeline.insert(0, {
+                'location': journey_stops[i-1]['location'],
+                'time': current_time.strftime('%I:%M %p'),
+                'label': f"Leave {journey_stops[i-1]['location'].title()}",
+                'travel_info': f"{route['description']} ({travel_minutes} min)"
+            })
+        # Subtract home activities
+        leave_home_time = current_time
+        wake_time = leave_home_time - timedelta(minutes=home_time)
+        timeline.insert(0, {
+            'location': 'home',
+            'time': wake_time.strftime('%I:%M %p'),
+            'label': 'Wake Up',
+            'travel_info': f"Get ready at home ({home_time} min)"
+        })
+        return wake_time, timeline
+
+    # Calculate all required wake times, use the earliest
+    wake_times = []
+    timelines = []
+    for stop, arr_time in constraints:
+        wake, tl = calc_leave_home_time(stop, arr_time)
+        if wake:
+            wake_times.append((wake, stop, arr_time, tl))
+    if not wake_times:
+        return None
+    # Earliest wake time
+    wake_times.sort(key=lambda x: x[0])
+    wake_time, main_stop, main_arrival, main_timeline = wake_times[0]
+
+    # Now, build the full forward timeline from wake_time
+    # Start fresh and build complete timeline for ALL stops
+    timeline = []
+    stops = [s['location'] for s in journey_stops]
+    
+    # Start at wake time at home
+    current_time = wake_time
+    timeline.append({
+        'location': 'home',
+        'time': current_time.strftime('%I:%M %p'),
+        'label': 'Wake Up',
+        'travel_info': f"Get ready at home ({home_time} min)"
+    })
+    
+    # Add home time
+    current_time = current_time + timedelta(minutes=home_time)
+    
+    # Go through ALL stops in order
+    # Forward legs base durations and distributed bump across all legs
+    base_forward = []
+    for i in range(len(journey_stops)-1):
+        base_travel = get_travel_minutes(journey_stops[i]['location'], journey_stops[i+1]['location'])
+        if base_travel is None:
+            logger.error(f"Cannot build timeline: missing route from {journey_stops[i]['location']} to {journey_stops[i+1]['location']}")
+            return None
+        base_forward.append(base_travel)
+    forward_bump = []
+    if external_bump:
+        # Reuse proportional bump distribution helper
+        def distribute_bump_forward(base_list, total):
+            if not base_list or not total:
+                return [0] * len(base_list)
+            total_base = sum(base_list)
+            alloc = [int((b / total_base) * total) for b in base_list]
+            diff = total - sum(alloc)
+            fracs = sorted(
+                [(i, (base_list[i] / total_base) * total - alloc[i]) for i in range(len(base_list))],
+                key=lambda x: x[1], reverse=True
+            )
+            for k in range(diff):
+                alloc[fracs[k % len(base_list)][0]] += 1
+            return alloc
+        forward_bump = distribute_bump_forward(base_forward, external_bump)
+    # Build forward timeline using distributed bumps
+    for i in range(len(journey_stops)-1):
+        route = get_route(journey_stops[i]['location'], journey_stops[i+1]['location'])
+        add_bump = forward_bump[i] if forward_bump else 0
+        travel_minutes = base_forward[i] + add_bump
+        
+        # Leave current stop
+        timeline.append({
+            'location': journey_stops[i]['location'],
+            'time': current_time.strftime('%I:%M %p'),
+            'label': f"Leave {journey_stops[i]['location'].title()}",
+            'travel_info': f"{route['description']} ({travel_minutes} min)"
+        })
+        
+        # Travel to next stop
+        current_time = current_time + timedelta(minutes=travel_minutes)
+        
+        # Only show "Arrive at" for the final stop
+        if i == len(journey_stops) - 2:  # Last iteration (final stop)
+            timeline.append({
+                'location': journey_stops[i+1]['location'],
+                'time': current_time.strftime('%I:%M %p'),
+                'label': f"Arrive at {journey_stops[i+1]['location'].title()}"
+            })
+
+    return {
+        'timeline': timeline,
+        'total_time': home_time,
+        'home_time': home_time
+    }
+
+@app.route('/get_routes_from/<location>')
+def get_routes_from(location):
+    """API endpoint to get available routes from a location"""
+    routes = get_available_destinations(location)
+    return jsonify(routes)
 
 @app.route('/add_activity', methods=['GET', 'POST'])
 def add_activity():
     if request.method == 'POST':
-        activities = load_activities()
-        new_activity = {
-            'section': request.form['section'],
-            'name': request.form['name'],
-            'minutes_twins': int(request.form['minutes_twins']),
-            'minutes_no_twins': int(request.form['minutes_no_twins']),
-            'location': request.form['location'],
-            'note': request.form['note']
-        }
-        activities.append(new_activity)
-        save_activities(activities)
-        return redirect(url_for('home'))
+        try:
+            activities = load_activities()
+            name = request.form.get('name', '').strip()
+            if not name:
+                logger.warning("Activity name is required")
+                return render_template('edit_activity.html', activity={}, idx=None, add_mode=True, error="Activity name is required")
+            
+            new_activity = {
+                'section': request.form.get('section', ''),
+                'name': name,
+                'minutes_twins': int(request.form.get('minutes_twins', 0)),
+                'minutes_no_twins': int(request.form.get('minutes_no_twins', 0)),
+                'location': request.form.get('location', ''),
+                'note': request.form.get('note', '')
+            }
+            activities.append(new_activity)
+            save_activities(activities)
+            logger.info(f"Added activity: {new_activity['name']}")
+            return redirect(url_for('home'))
+        except (ValueError, KeyError) as e:
+            logger.error(f"Error adding activity: {e}")
+            return render_template('edit_activity.html', activity={}, idx=None, add_mode=True, error="Invalid form data")
     return render_template('edit_activity.html', activity={}, idx=None, add_mode=True)
 
 @app.route('/remove_activity/<int:idx>', methods=['POST'])
@@ -276,66 +413,79 @@ def edit_activity(idx):
         return redirect(url_for('home'))
     return render_template('edit_activity.html', activity=activity, idx=idx)
 
-@app.route('/add_to_routine/<int:idx>', methods=['POST'])
-def add_to_routine(idx):
-    activities = load_activities()
-    if 0 <= idx < len(activities):
-        routine = session.get('routine', [])
-        activity = activities[idx].copy()
-        activity['selected'] = True
-        routine.append(activity)
-        session['routine'] = routine
-    return redirect(url_for('home'))
+@app.route('/manage_routes')
+def manage_routes():
+    routes = load_routes()
+    return render_template('manage_routes.html', routes=routes)
 
-@app.route('/remove_from_routine/<int:idx>', methods=['POST'])
-def remove_from_routine(idx):
-    routine = session.get('routine', [])
-    if 0 <= idx < len(routine):
-        routine.pop(idx)
-        session['routine'] = routine
-    return redirect(url_for('home'))
+@app.route('/add_route', methods=['GET', 'POST'])
+def add_route():
+    if request.method == 'POST':
+        try:
+            routes = load_routes()
+            from_loc = request.form.get('from', '').strip()
+            to_loc = request.form.get('to', '').strip()
+            minutes = int(request.form.get('minutes', 0))
+            
+            if not from_loc or not to_loc:
+                logger.warning("Route locations required")
+                return redirect(url_for('manage_routes'))
+            if minutes <= 0:
+                logger.warning("Route minutes must be positive")
+                return redirect(url_for('manage_routes'))
+            
+            new_route = {
+                'from': from_loc,
+                'to': to_loc,
+                'minutes': minutes,
+                'description': request.form.get('description', '')
+            }
+            routes.append(new_route)
+            save_routes(routes)
+            logger.info(f"Added route: {new_route['from']} -> {new_route['to']}")
+            return redirect(url_for('manage_routes'))
+        except (ValueError, KeyError) as e:
+            logger.error(f"Error adding route: {e}")
+            return redirect(url_for('manage_routes'))
+    
+    # Get all unique locations
+    routes = load_routes()
+    locations = sorted(list(set([r['from'] for r in routes] + [r['to'] for r in routes])))
+    return render_template('edit_route.html', route={}, idx=None, add_mode=True, locations=locations)
 
-@app.route('/set_weather', methods=['POST'])
-def set_weather():
-    session['weather'] = request.form['weather']
-    return redirect(url_for('home'))
+@app.route('/edit_route/<int:idx>', methods=['GET', 'POST'])
+def edit_route(idx):
+    routes = load_routes()
+    if idx >= len(routes):
+        return redirect(url_for('manage_routes'))
+    
+    route = routes[idx]
+    
+    if request.method == 'POST':
+        route['from'] = request.form['from']
+        route['to'] = request.form['to']
+        route['minutes'] = int(request.form['minutes'])
+        route['description'] = request.form['description']
+        routes[idx] = route
+        save_routes(routes)
+        return redirect(url_for('manage_routes'))
+    
+    locations = sorted(list(set([r['from'] for r in routes] + [r['to'] for r in routes])))
+    return render_template('edit_route.html', route=route, idx=idx, locations=locations)
 
-@app.route('/update_routine', methods=['POST'])
-def update_routine():
-    routine = get_routine()
-    selected = request.form.getlist('selected')
-    for idx, item in enumerate(routine):
-        item['selected'] = str(idx) in selected
-    move = request.form.get('move')
-    if move:
-        direction, idx = move.split('-')
-        idx = int(idx)
-        if direction == 'up' and idx > 0:
-            routine[idx-1], routine[idx] = routine[idx], routine[idx-1]
-        elif direction == 'down' and idx < len(routine)-1:
-            routine[idx+1], routine[idx] = routine[idx], routine[idx+1]
-    session['routine'] = routine
-    return redirect(url_for('home'))
-
-@app.route('/save_routine', methods=['POST'])
-def save_routine():
-    routine = get_routine()
-    with open('saved_routine.txt', 'w') as f:
-        for item in routine:
-            f.write(f"{item['name']},{item.get('minutes_twins', 0)},{item.get('selected', True)}\n")
-    return redirect(url_for('home'))
-
-@app.route('/start_timer', methods=['POST'])
-def start_timer():
-    session['current_idx'] = 0
-    return redirect(url_for('timer'))
+@app.route('/remove_route/<int:idx>', methods=['POST'])
+def remove_route(idx):
+    routes = load_routes()
+    if 0 <= idx < len(routes):
+        routes.pop(idx)
+        save_routes(routes)
+    return redirect(url_for('manage_routes'))
 
 @app.route('/timer', methods=['GET'])
 def timer():
     activities = load_activities()
     twins_morning = request.args.get('twins', 'false') == 'true'
     
-    # Group by section
     sections = {}
     for activity in activities:
         section = activity['section']
@@ -353,7 +503,6 @@ def save_timing():
     
     activities = load_activities()
     
-    # Find the activity and add timing record
     for activity in activities:
         if activity['name'] == activity_name:
             if 'timing_history' not in activity:
@@ -366,7 +515,6 @@ def save_timing():
                 'twins_morning': twins_morning
             })
             
-            # Keep only last 50 records
             activity['timing_history'] = activity['timing_history'][-50:]
             break
     
@@ -377,7 +525,6 @@ def save_timing():
 def manage_activities():
     activities = load_activities()
     
-    # Add statistics to each activity
     for activity in activities:
         if 'timing_history' in activity and activity['timing_history']:
             history = activity['timing_history']
@@ -398,13 +545,11 @@ def manage_activities():
 def history():
     activities = load_activities()
     
-    # Calculate statistics for each activity
     activity_stats = []
     for activity in activities:
         if 'timing_history' in activity and activity['timing_history']:
             history = activity['timing_history']
             
-            # Separate by context
             twins_times = [r['duration_minutes'] for r in history if r.get('twins_morning')]
             no_twins_times = [r['duration_minutes'] for r in history if not r.get('twins_morning')]
             
@@ -418,7 +563,6 @@ def history():
                 'history': sorted(history, key=lambda x: x['date'], reverse=True)
             }
             
-            # Calculate variance from estimate
             if stats['twins_avg']:
                 stats['twins_variance'] = round(stats['twins_avg'] - stats['twins_estimate'], 1)
             if stats['no_twins_avg']:
@@ -456,25 +600,19 @@ def reorder_activity():
     dragged = activities[dragged_idx]
     target = activities[target_idx]
     
-    # Only allow reordering within same section
     if dragged['section'] != target['section']:
         return {'success': False, 'error': 'Cannot move between sections'}, 400
     
-    # Get dragged order and target order
     dragged_order = dragged['order']
     target_order = target['order']
     
-    # If dragging down (to higher order)
     if dragged_order < target_order:
-        # Shift all items between dragged and target down by 1
         for activity in activities:
             if activity['section'] == dragged['section']:
                 if dragged_order < activity['order'] <= target_order:
                     activity['order'] -= 1
         dragged['order'] = target_order
-    # If dragging up (to lower order)
     else:
-        # Shift all items between target and dragged up by 1
         for activity in activities:
             if activity['section'] == dragged['section']:
                 if target_order <= activity['order'] < dragged_order:

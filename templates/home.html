@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Getting Ready Timing Calculator</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
         h1 { color: #333; }
         h2 { color: #555; margin-top: 30px; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
         h3 { color: #666; margin-top: 20px; }
@@ -13,307 +13,139 @@
         .activity { margin: 10px 0; padding: 5px; }
         label { display: inline-block; margin-left: 10px; }
         input[type="time"], select { padding: 5px; margin: 5px; }
-        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 0; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 5px 10px 0; }
         button:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
         .results { background: #e7f3ff; padding: 20px; border-radius: 5px; margin-top: 20px; }
         .results h2 { border-bottom: none; }
         .note { font-size: 0.9em; color: #666; font-style: italic; }
         .time-display { font-weight: bold; color: #007bff; }
-        .sticky-results { position: sticky; top: 0; z-index: 100; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: -20px -20px 20px -20px; padding: 15px 20px; }
-        .sticky-results.hidden { display: none; }
-        .time-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
-        .time-row:last-child { border-bottom: none; }
-        .time-label { font-weight: bold; font-size: 0.9em; }
-        .time-value { font-size: 1.3em; font-weight: bold; }
-        .wake-time { color: #007bff; }
-        .leave-time { color: #28a745; }
-        .arrive-time { color: #dc3545; }
+        .timeline { background: white; border-left: 3px solid #007bff; padding-left: 20px; margin: 20px 0; }
+        .timeline-item { position: relative; padding: 15px 0; }
+        .timeline-item::before { content: ""; position: absolute; left: -27px; color: #007bff; font-size: 1.5em; }
+        .timeline-time { font-size: 1.3em; font-weight: bold; color: #007bff; }
+        .timeline-label { font-size: 1.1em; color: #333; margin-top: 5px; }
+        .timeline-info { font-size: 0.9em; color: #666; margin-top: 3px; }
     </style>
-    <script>
-        let activitiesData = {};
-        
-        function updateTimes() {
-            const twinsSelect = document.querySelector('select[name="boys_school"]');
-            const isTwinsMorning = twinsSelect.value === 'yes';
-            
-            document.querySelectorAll('.time-display').forEach(el => {
-                const twinsMins = el.dataset.twinsMins;
-                const noTwinsMins = el.dataset.noTwinsMins;
-                const minutes = isTwinsMorning ? twinsMins : noTwinsMins;
-                el.textContent = minutes + ' min';
-            });
-            
-            calculateSchedule();
-        }
-        
-        function calculateSchedule() {
-            const twinsSelect = document.querySelector('select[name="boys_school"]');
-            const isTwinsMorning = twinsSelect.value === 'yes';
-            const meetingTime = document.querySelector('select[name="meeting_at"]').value;
-            const boysSchool = twinsSelect.value === 'yes';
-            
-            // Determine arrival deadline
-            let arriveTime = null;
-            if (meetingTime) {
-                arriveTime = meetingTime;
-            }
-            if (boysSchool) {
-                const schoolTime = '07:55';
-                if (!arriveTime || schoolTime < arriveTime) {
-                    arriveTime = schoolTime;
-                }
-            }
-            
-            if (!arriveTime) {
-                document.getElementById('sticky-results').classList.add('hidden');
-                return;
-            }
-            
-            // Calculate times
-            let transitMinutes = 0;
-            let homeMinutes = 0;
-            
-            // Get all activities and calculate
-            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                const activityDiv = checkbox.closest('.activity');
-                if (!activityDiv) return;
-                
-                const timeDisplay = activityDiv.querySelector('.time-display');
-                if (!timeDisplay) return;
-                
-                const twinsMins = parseInt(timeDisplay.dataset.twinsMins) || 0;
-                const noTwinsMins = parseInt(timeDisplay.dataset.noTwinsMins) || 0;
-                const minutes = isTwinsMorning ? twinsMins : noTwinsMins;
-                
-                const location = timeDisplay.dataset.location || '';
-                const isTransit = location === 'In Transit';
-                
-                if (checkbox.checked || checkbox.disabled) {
-                    if (isTransit) {
-                        transitMinutes += minutes;
-                    } else {
-                        homeMinutes += minutes;
-                    }
-                }
-            });
-            
-            // Calculate backwards from arrival
-            const [arriveHour, arriveMin] = arriveTime.split(':').map(Number);
-            const arriveDate = new Date(2025, 0, 1, arriveHour, arriveMin);
-            
-            const leaveDate = new Date(arriveDate.getTime() - transitMinutes * 60000);
-            const wakeDate = new Date(leaveDate.getTime() - homeMinutes * 60000);
-            
-            // Format times
-            function formatTime(date) {
-                let hours = date.getHours();
-                const minutes = date.getMinutes();
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                hours = hours % 12 || 12;
-                return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-            }
-            
-            document.getElementById('wake-time').textContent = formatTime(wakeDate);
-            document.getElementById('leave-time').textContent = formatTime(leaveDate);
-            document.getElementById('arrive-time').textContent = formatTime(arriveDate);
-            document.getElementById('home-minutes').textContent = homeMinutes;
-            document.getElementById('transit-minutes').textContent = transitMinutes;
-            
-            document.getElementById('sticky-results').classList.remove('hidden');
-        }
-        
-        let draggedElement = null;
-
-        function handleDragStart(e) {
-            draggedElement = e.currentTarget;
-            e.currentTarget.style.opacity = '0.4';
-            e.dataTransfer.effectAllowed = 'move';
-        }
-
-        function handleDragOver(e) {
-            if (e.preventDefault) {
-                e.preventDefault();
-            }
-            e.dataTransfer.dropEffect = 'move';
-            
-            const target = e.currentTarget;
-            // Only allow drop if same section
-            if (draggedElement && target !== draggedElement && 
-                target.dataset.section === draggedElement.dataset.section) {
-                target.style.borderTop = '2px solid #007bff';
-            }
-            return false;
-        }
-
-        function handleDrop(e) {
-            if (e.stopPropagation) {
-                e.stopPropagation();
-            }
-            
-            e.currentTarget.style.borderTop = '';
-            
-            const target = e.currentTarget;
-            if (draggedElement && target !== draggedElement && 
-                target.dataset.section === draggedElement.dataset.section) {
-                
-                const draggedIdx = parseInt(draggedElement.dataset.idx);
-                const targetIdx = parseInt(target.dataset.idx);
-                
-                // Reorder activities
-                fetch('/reorder_activity', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        dragged_idx: draggedIdx,
-                        target_idx: targetIdx
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-            }
-            return false;
-        }
-
-        function handleDragEnd(e) {
-            e.currentTarget.style.opacity = '1';
-            // Remove all border highlights
-            document.querySelectorAll('.activity').forEach(el => {
-                el.style.borderTop = '';
-            });
-        }
-
-        window.addEventListener('DOMContentLoaded', function() {
-            const twinsSelect = document.querySelector('select[name="boys_school"]');
-            const meetingSelect = document.querySelector('select[name="meeting_at"]');
-            
-            if (twinsSelect) {
-                twinsSelect.addEventListener('change', updateTimes);
-                updateTimes();
-            }
-            
-            if (meetingSelect) {
-                meetingSelect.addEventListener('change', calculateSchedule);
-            }
-            
-            // Listen to all checkboxes
-            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                cb.addEventListener('change', calculateSchedule);
-            });
-            
-            calculateSchedule();
-        });
-    </script>
 </head>
 <body>
-    <div id="sticky-results" class="sticky-results hidden">
-        <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
-            <div class="time-row">
-                <span class="time-label">⏰ Wake Up:</span>
-                <span class="time-value wake-time" id="wake-time">--:--</span>
-            </div>
-            <div class="time-row">
-                <span class="time-label">🚗 Leave:</span>
-                <span class="time-value leave-time" id="leave-time">--:--</span>
-            </div>
-            <div class="time-row">
-                <span class="time-label">📍 Arrive:</span>
-                <span class="time-value arrive-time" id="arrive-time">--:--</span>
-            </div>
-        </div>
-        <div style="text-align: center; margin-top: 10px; font-size: 0.85em; color: #666;">
-            Home: <span id="home-minutes">0</span> min | Transit: <span id="transit-minutes">0</span> min
-        </div>
-    </div>
-    
-    <h1>Getting Ready Timing Calculator</h1>
-    
-    <div style="margin-bottom: 20px;">
-        <a href="/timer" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">⏱️ Timer Activities</a>
-        <a href="/history" style="display: inline-block; background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">📊 History & Insights</a>
-        <a href="/manage_activities" style="display: inline-block; background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">⚙️ Manage Activities</a>
-    </div>
-    
-    <form>
-        <h2>1. Today's Schedule</h2>
-        <div class="section">
-            <label><strong>First work meeting/event start time:</strong></label>
-            <select name="meeting_at">
-                <option value="">-- Select Time --</option>
-                {% for hour in range(6, 12) %}
-                    {% for minute in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] %}
-                        {% set time_val = "%02d:%02d"|format(hour, minute) %}
-                        {% set display_hour = hour if hour == 12 else hour %}
-                        {% set is_default = (time_val == "08:30" and not meeting_at) %}
-                        <option value="{{ time_val }}" {% if meeting_at == time_val or is_default %}selected{% endif %}>
-                            {{ display_hour }}:{{ "%02d"|format(minute) }} AM
-                        </option>
+
+    <div id="schedule-summary" style="position:sticky;top:0;z-index:1000;background:#fff9e6;border-bottom:2px solid #ffd700;padding:10px 0 10px 0;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+        <div style="max-width:900px;margin:0 auto;">
+            <div class="timeline" style="margin:0; font-size:0.95em;">
+                {% if schedule and schedule.timeline %}
+                    {% set emoji_map = {'home':'🏠','school':'🏫','daycare':'🧸','work':'🏢'} %}
+                    {% for item in schedule.timeline %}
+                        <div class="timeline-item" style="margin-bottom:2px; line-height:1.2; font-size:0.95em;">
+                            <span class="timeline-time" style="font-size:1em; font-weight:normal;">{{ item.time }}</span>
+                            {% set stop = None %}
+                            {% if 'home' in item.label|lower %}{% set stop = 'home' %}
+                            {% elif 'school' in item.label|lower %}{% set stop = 'school' %}
+                            {% elif 'daycare' in item.label|lower %}{% set stop = 'daycare' %}
+                            {% elif 'work' in item.label|lower %}{% set stop = 'work' %}
+                            {% endif %}
+                            {% if stop %}<span>{{ emoji_map[stop] }}</span>{% endif %}
+                            <span class="timeline-label">{{ item.label }}</span>
+                            {% if item.travel_info %}<span class="timeline-info" style="font-size:0.9em; color:#888;">{{ item.travel_info }}</span>{% endif %}
+                        </div>
                     {% endfor %}
-                {% endfor %}
-            </select>
-            <br><br>
-            
-            <label><strong>Am I driving big twins into school?</strong></label>
-            <select name="boys_school">
-                <option value="no" {% if not boys_school %}selected{% endif %}>No</option>
-                <option value="yes" {% if boys_school %}selected{% endif %}>Yes (need to be at school by 7:55 AM)</option>
-            </select>
+                {% else %}
+                    <span style="color:#bbb;font-size:1em;">Your schedule summary will appear here after you calculate your morning!</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <h1>Getting Ready Timing Calculator</h1>
+    <div style="margin-bottom: 20px;">
+        <a href="/timer" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;"> Timer Activities</a>
+        <a href="/history" style="display: inline-block; background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;"> History & Insights</a>
+        <a href="/manage_activities" style="display: inline-block; background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;"> Manage Activities</a>
+        <a href="/manage_routes" style="display: inline-block; background: #17a2b8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;"> Manage Routes</a>
+    </div>
+
+    <form method="POST" id="mainForm" autocomplete="off">
+        <h2>1. Morning Options</h2>
+        <div style="background: #fff; border: 2px solid #007bff; border-radius: 8px; padding: 20px; margin: 20px 0; margin-bottom: 20px;">
+            <strong>Journey Stops:</strong>
+            {% set stop_locations = journey_stops | map(attribute='location') | list %}
+            <ul id="stops-list" style="list-style:none;padding:0;margin:10px 0 10px 0;">
+                <li data-stop="home" style="margin-bottom:6px;cursor:default; display:flex; align-items:center; gap:8px;">
+                    <span class="drag-handle" style="cursor:default;user-select:none;font-size:1.3em;opacity:0.4;">☰</span>
+                    <label style="display:flex; align-items:center; gap:6px;">Home</label>
+                </li>
+                <li data-stop="school" style="margin-bottom:6px;cursor:move; display:flex; align-items:center; gap:8px;">
+                    <span class="drag-handle" style="cursor:grab;user-select:none;font-size:1.3em;">☰</span>
+                    <label style="display:flex; align-items:center; gap:6px;"><input id="school_checkbox" type="checkbox" {% if 'school' in stop_locations %}checked{% endif %} onchange="toggleStop('school'); toggleSchoolTime();"> School</label>
+                    <span id="school_time_container" style="display:none; font-size:0.95em;">
+                        School arrival:
+                        <select name="school_arrival_time" id="school_arrival_time" style="padding:4px;">
+                            {% for h in range(7,9) %}
+                                {% for m in range(0,60,5) %}
+                                    {% if h < 8 or (h == 8 and m == 0) %}
+                                        {% set t = '{:02d}:{:02d}'.format(h,m) %}
+                                        <option value="{{ t }}" {% if school_arrival_time==t or (not school_arrival_time and t=='07:50') %}selected{% endif %}>{{ t }} AM</option>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        </select>
+                    </span>
+                </li>
+                <li data-stop="daycare" style="margin-bottom:6px;cursor:move; display:flex; align-items:center; gap:8px;">
+                    <span class="drag-handle" style="cursor:grab;user-select:none;font-size:1.3em;">☰</span>
+                    <label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" {% if 'daycare' in stop_locations %}checked{% endif %} onchange="toggleStop('daycare')"> Daycare</label>
+                </li>
+                <li data-stop="work" style="margin-bottom:6px;cursor:default; display:flex; align-items:center; gap:8px;">
+                    <span class="drag-handle" style="cursor:default;user-select:none;font-size:1.3em;opacity:0.4;">☰</span>
+                    <label style="display:flex; align-items:center; gap:6px;"><input id="work_checkbox" type="checkbox" checked onclick="return false;" onchange="toggleStop('work')"> Work</label>
+                    <span style="font-size:0.95em;">
+                        First work meeting:
+                        <select name="work_meeting_time" id="work_meeting_time" style="padding:4px;">
+                            {% for h in range(7,10) %}{% for m in range(0,60,5) %}
+                                {% set t = '{:02d}:{:02d}'.format(h,m) %}
+                                <option value="{{ t }}" {% if work_meeting_time==t or (not work_meeting_time and t=='08:30') %}selected{% endif %}>{{ t|replace(":", ".") }} {% if h<12 %}AM{% else %}PM{% endif %}</option>
+                            {% endfor %}{% endfor %}
+                        </select>
+                    </span>
+                </li>
+            </ul>
+            <div id="stops-hidden"></div>
+            <small style="color:#888;">Check stops to include and reorder with drag handles. Home is always first.</small>
         </div>
 
         <h2>2. Select Today's Activities</h2>
-        
-        {% set section_order = ['Knowns', 'Daily External Variables', 'Daily Minimum Activities', 'Add Ons'] %}
+        {% set section_order = ['Daily External Variables', 'Daily Minimum Activities', 'Add Ons'] %}
         {% for section_name in section_order %}
             {% if section_name in sections %}
                 <h3>{{ section_name }}</h3>
                 <div class="section">
-                    {% if section_name == 'Knowns' %}
+                    {% if section_name == 'Daily External Variables' %}
                         <p style="color: #666; font-style: italic; margin-bottom: 10px;">
-                            These are automatically included in your calculation.
-                        </p>
-                    {% elif section_name == 'Daily External Variables' %}
-                        <p style="color: #666; font-style: italic; margin-bottom: 10px;">
-                            Select any conditions that apply today:
+                            Select any conditions that apply today (adds time to transit):
                         </p>
                     {% elif section_name == 'Add Ons' %}
                         <p style="color: #666; font-style: italic; margin-bottom: 10px;">
                             Check the ones you plan to do today:
                         </p>
                     {% endif %}
-                    
                     {% for item in sections[section_name] %}
-                        <div class="activity" draggable="true" data-idx="{{ item.idx }}" data-section="{{ section_name }}" 
-                             style="display: flex; align-items: center; gap: 10px; cursor: move; padding: 8px; margin: 2px 0; border-radius: 4px; background: #f9f9f9;"
-                             ondragstart="handleDragStart(event)" 
-                             ondragover="handleDragOver(event)" 
-                             ondrop="handleDrop(event)" 
-                             ondragend="handleDragEnd(event)">
-                            <span style="color: #999; cursor: grab; user-select: none;" title="Drag to reorder">☰</span>
+                        <div class="activity">
+                            <span style="color: #999; cursor: grab; user-select: none;"></span>
                             <input type="checkbox" 
                                    name="activities" 
                                    value="{{ item.idx }}" 
                                    id="activity_{{ item.idx }}"
-                                   {% if section_name == 'Knowns' %}checked disabled{% endif %}
-                                   {% if section_name == 'Daily Minimum Activities' and not item.selected %}checked{% endif %}
-                                   {% if item.selected %}checked{% endif %}>
+                                   {% if (section_name == 'Daily Minimum Activities' and not item.selected) or item.selected %}checked{% endif %}>
                             <label for="activity_{{ item.idx }}" style="flex: 1;">
                                 <strong>{{ item.activity.name }}</strong> 
-                                (<span class="time-display" 
-                                       data-twins-mins="{{ item.activity.minutes_twins }}"
-                                       data-no-twins-mins="{{ item.activity.minutes_no_twins }}"
-                                       data-location="{{ item.activity.location }}">
-                                    {% if twins_morning %}{{ item.activity.minutes_twins }}{% else %}{{ item.activity.minutes_no_twins }}{% endif %} min
-                                </span>
-                                {% set avg = item.activity.twins_avg if twins_morning else item.activity.no_twins_avg %}
-                                {% set estimate = item.activity.minutes_twins if twins_morning else item.activity.minutes_no_twins %}
+                                (<span class="time-display">{{ item.activity.minutes_no_twins }} min</span>
+                                {% set avg = item.activity.no_twins_avg %}
+                                {% set estimate = item.activity.minutes_no_twins %}
                                 {% if avg %}
                                     | Avg: <span style="color: #667eea; font-weight: bold;">{{ avg }} min</span>
                                     {% set diff = avg - estimate %}
@@ -332,38 +164,152 @@
                 </div>
             {% endif %}
         {% endfor %}
-        
-        <input type="hidden" name="twins_morning" value="{% if twins_morning %}yes{% else %}no{% endif %}">
     </form>
 
-    {% if wakeup_time %}
+    {% if schedule %}
         <div class="results">
-            <h2>⏰ Your Schedule</h2>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <tr style="background: #f0f8ff;">
-                    <td style="padding: 15px; font-size: 1.1em;"><strong>Wake Up:</strong></td>
-                    <td style="padding: 15px; font-size: 1.5em; color: #007bff; text-align: right;"><strong>{{ wakeup_time }}</strong></td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-size: 0.9em; color: #666;">Get ready at home</td>
-                    <td style="padding: 10px; text-align: right; color: #666;">{{ home_time }} minutes</td>
-                </tr>
-                <tr style="background: #f0f8ff;">
-                    <td style="padding: 15px; font-size: 1.1em;"><strong>Leave House:</strong></td>
-                    <td style="padding: 15px; font-size: 1.5em; color: #28a745; text-align: right;"><strong>{{ leave_time }}</strong></td>
-                </tr>
-                <tr style="background: #f0f8ff;">
-                    <td style="padding: 15px; font-size: 1.1em;"><strong>Arrive at Work:</strong></td>
-                    <td style="padding: 15px; font-size: 1.5em; color: #dc3545; text-align: right;"><strong>{{ arrive_time }}</strong></td>
-                </tr>
-            </table>
+            <h2> Your Schedule (Full Details)</h2>
+            <div class="timeline">
+                {% for item in schedule.timeline %}
+                    <div class="timeline-item">
+                        <div class="timeline-time">{{ item.time }}</div>
+                        <div class="timeline-label">{{ item.label }}</div>
+                        {% if item.travel_info %}<div class="timeline-info">{{ item.travel_info }}</div>{% endif %}
+                    </div>
+                {% endfor %}
+            </div>
             <p style="margin-top: 15px; text-align: center; color: #666;">
-                <strong>Total time needed:</strong> {{ total_time }} minutes
+                <strong>Total time at home:</strong> {{ schedule.home_time }} minutes
             </p>
         </div>
     {% endif %}
 
-    <hr style="margin-top: 40px;">
-    <p><a href="/manage_activities">Manage Activities Database</a></p>
+    <script>
+    function getStopsOrder() {
+        const stops = [];
+        document.querySelectorAll('#stops-list li').forEach(li => {
+            const stop = li.getAttribute('data-stop');
+            const checkbox = li.querySelector('input[type=checkbox]');
+            if (stop === 'home' || stop === 'work' || (checkbox && checkbox.checked)) {
+                stops.push(stop);
+            }
+        });
+        return stops;
+    }
+    
+    function updateStopsHiddenInputs() {
+        const stops = getStopsOrder();
+        const container = document.getElementById('stops-hidden');
+        container.innerHTML = '';
+        stops.forEach((stop, idx) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `stop_location_${idx}`;
+            input.value = stop;
+            container.appendChild(input);
+        });
+    }
+    
+    function toggleStop(stop) {
+        updateStopsHiddenInputs();
+        updateScheduleSummary();
+    }
+    
+    function enableDragDrop() {
+        const list = document.getElementById('stops-list');
+        let dragged;
+        list.querySelectorAll('li').forEach(li => {
+            const stop = li.getAttribute('data-stop');
+            if (stop === 'home' || stop === 'work') return;
+            li.draggable = true;
+            li.addEventListener('dragstart', function(e) {
+                dragged = li;
+                li.style.opacity = 0.5;
+            });
+            li.addEventListener('dragend', function(e) {
+                li.style.opacity = '';
+            });
+            li.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+            li.addEventListener('drop', function(e) {
+                e.preventDefault();
+                if (dragged && dragged !== li) {
+                    list.insertBefore(dragged, (dragged.compareDocumentPosition(li) & 4) ? li.nextSibling : li);
+                    updateStopsHiddenInputs();
+                    updateScheduleSummary();
+                    attachAllListeners();
+                }
+            });
+        });
+    }
+
+    function attachAllListeners() {
+        document.querySelectorAll('#mainForm input, #mainForm select').forEach(function(el) {
+            el.onchange = null;
+        });
+        document.querySelectorAll('#mainForm input, #mainForm select').forEach(function(el) {
+            el.addEventListener('change', function() {
+                updateStopsHiddenInputs();
+                if (el.id === 'school_checkbox') {
+                    toggleSchoolTime();
+                }
+                updateScheduleSummary();
+            });
+        });
+    }
+    
+    function updateScheduleSummary() {
+        var form = document.getElementById('mainForm');
+        var formData = new FormData(form);
+        fetch('/schedule_json', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            var summary = document.getElementById('schedule-summary');
+            var timelineDiv = summary.querySelector('.timeline');
+            if (data && data.timeline && data.timeline.length > 0) {
+                let emojiMap = {home:'🏠', school:'🏫', daycare:'🧸', work:'🏢'};
+                let html = '';
+                data.timeline.forEach(function(item) {
+                    let stop = null;
+                    let label = item.label.toLowerCase();
+                    if (label.includes('home')) stop = 'home';
+                    else if (label.includes('school')) stop = 'school';
+                    else if (label.includes('daycare')) stop = 'daycare';
+                    else if (label.includes('work')) stop = 'work';
+                    html += `<div class="timeline-item" style="margin-bottom:2px;line-height:1.2;font-size:0.95em;">` +
+                        `<span class="timeline-time" style="font-size:1em;font-weight:normal;">${item.time}</span> ` +
+                        (stop ? `<span>${emojiMap[stop]}</span> ` : '') +
+                        `<span class="timeline-label">${item.label}</span> ` +
+                        (item.travel_info ? `<span class="timeline-info" style="font-size:0.9em;color:#888;">${item.travel_info}</span>` : '') +
+                        `</div>`;
+                });
+                timelineDiv.innerHTML = html;
+            } else {
+                timelineDiv.innerHTML = '<span style="color:#bbb;font-size:1em;">Your schedule summary will appear here after you calculate your morning!</span>';
+            }
+        });
+    }
+
+    function toggleSchoolTime() {
+        var box = document.getElementById('school_checkbox');
+        var cont = document.getElementById('school_time_container');
+        if (box && cont) {
+            cont.style.display = box.checked ? 'inline' : 'none';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+        updateStopsHiddenInputs();
+        enableDragDrop();
+        attachAllListeners();
+        toggleSchoolTime();
+        updateScheduleSummary();
+    });
+    </script>
+
 </body>
 </html>

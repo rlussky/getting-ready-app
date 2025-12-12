@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if add_mode %}Add Route{% else %}Edit Route{% endif %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        h1 { color: #333; }
+        .form-group { margin: 20px 0; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; box-sizing: border-box; }
+        input[type="number"] { width: 150px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        a { color: #007bff; text-decoration: none; }
+        .hint { font-size: 0.9em; color: #666; margin-top: 5px; }
+        .route-preview { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px; }
+        .route-preview h3 { margin-top: 0; color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <h1>{% if add_mode %}Add New Route{% else %}Edit Route{% endif %}</h1>
+    
+    <form method="post">
+        <div class="form-group">
+            <label for="from">From Location:</label>
+            <input type="text" name="from" id="from" value="{{ route.from if route.from else '' }}" 
+                   placeholder="e.g., home, school, daycare" required list="location-list">
+            <datalist id="location-list">
+                {% for loc in locations %}
+                    <option value="{{ loc }}">
+                {% endfor %}
+            </datalist>
+            <div class="hint">Enter a location name or select from existing locations</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="to">To Location:</label>
+            <input type="text" name="to" id="to" value="{{ route.to if route.to else '' }}" 
+                   placeholder="e.g., work, school, daycare" required list="location-list">
+            <div class="hint">Enter a location name or select from existing locations</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="minutes">Travel Time (minutes):</label>
+            <input type="number" name="minutes" id="minutes" value="{{ route.minutes if route.minutes else '' }}" 
+                   min="1" max="120" required>
+            <div class="hint">How long does it typically take to travel this route?</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <input type="text" name="description" id="description" value="{{ route.description if route.description else '' }}" 
+                   placeholder="e.g., Drive to work, Walk from parking" required>
+            <div class="hint">Brief description of this route segment</div>
+        </div>
+        
+        <div class="route-preview" id="preview" style="display: none;">
+            <h3>Route Preview</h3>
+            <p><strong id="preview-from"></strong> → <strong id="preview-to"></strong></p>
+            <p><span id="preview-desc"></span> (<span id="preview-mins"></span> minutes)</p>
+        </div>
+        
+        <button type="submit">{% if add_mode %}Add Route{% else %}Save Changes{% endif %}</button>
+        <a href="/manage_routes"><button type="button" class="btn-secondary">Cancel</button></a>
+    </form>
+    
+    <script>
+        function updatePreview() {
+            const from = document.getElementById('from').value;
+            const to = document.getElementById('to').value;
+            const minutes = document.getElementById('minutes').value;
+            const description = document.getElementById('description').value;
+            
+            if (from && to && minutes) {
+                document.getElementById('preview').style.display = 'block';
+                document.getElementById('preview-from').textContent = from.charAt(0).toUpperCase() + from.slice(1);
+                document.getElementById('preview-to').textContent = to.charAt(0).toUpperCase() + to.slice(1);
+                document.getElementById('preview-desc').textContent = description || 'Travel';
+                document.getElementById('preview-mins').textContent = minutes;
+            } else {
+                document.getElementById('preview').style.display = 'none';
+            }
+        }
+        
+        document.getElementById('from').addEventListener('input', updatePreview);
+        document.getElementById('to').addEventListener('input', updatePreview);
+        document.getElementById('minutes').addEventListener('input', updatePreview);
+        document.getElementById('description').addEventListener('input', updatePreview);
+        
+        // Initialize preview if editing
+        updatePreview();
+    </script>
+</body>
+</html>
