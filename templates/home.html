@@ -31,6 +31,13 @@
         .timeline-time { font-size: 1.3em; font-weight: bold; color: #007bff; }
         .timeline-label { font-size: 1.1em; color: #333; margin-top: 5px; }
         .timeline-info { font-size: 0.9em; color: #666; margin-top: 3px; }
+
+        /* Compact the sticky schedule summary without affecting the full timeline below */
+        #schedule-summary .timeline { padding-left: 12px; margin: 0; border-left-width: 2px; }
+        #schedule-summary .timeline-item { padding: 4px 0; margin: 0; }
+        #schedule-summary .timeline-time { font-size: 0.95em; font-weight: 600; }
+        #schedule-summary .timeline-label { margin-top: 0; }
+        #schedule-summary .timeline-info { margin-top: 0; }
     </style>
 </head>
 <body>
@@ -41,7 +48,7 @@
                 {% if schedule and schedule.timeline %}
                     {% set emoji_map = {'home':'🏠','school':'🏫','daycare':'🧸','work':'🏢'} %}
                     {% for item in schedule.timeline %}
-                        <div class="timeline-item" style="margin-bottom:2px; line-height:1.2; font-size:0.95em;">
+                        <div class="timeline-item" style="margin-bottom:0; line-height:1.15; font-size:0.95em;">
                             <span class="timeline-time" style="font-size:1em; font-weight:normal;">{{ item.time }}</span>
                             {% set stop = None %}
                             {% if 'home' in item.label|lower %}{% set stop = 'home' %}
@@ -280,7 +287,7 @@
                     else if (label.includes('school')) stop = 'school';
                     else if (label.includes('daycare')) stop = 'daycare';
                     else if (label.includes('work')) stop = 'work';
-                    html += `<div class="timeline-item" style="margin-bottom:2px;line-height:1.2;font-size:0.95em;">` +
+                    html += `<div class="timeline-item" style="margin-bottom:0;line-height:1.15;font-size:0.95em;">` +
                         `<span class="timeline-time" style="font-size:1em;font-weight:normal;">${item.time}</span> ` +
                         (stop ? `<span>${emojiMap[stop]}</span> ` : '') +
                         `<span class="timeline-label">${item.label}</span> ` +

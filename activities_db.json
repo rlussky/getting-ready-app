@@ -1,23 +1,5 @@
 [
   {
-    "section": "Knowns",
-    "name": "Drive to work",
-    "minutes_twins": 30,
-    "minutes_no_twins": 20,
-    "location": "In Transit",
-    "note": "",
-    "order": 0
-  },
-  {
-    "section": "Knowns",
-    "name": "Walking time from parking",
-    "minutes_twins": 10,
-    "minutes_no_twins": 10,
-    "location": "In Transit",
-    "note": "",
-    "order": 1
-  },
-  {
     "section": "Daily External Variables",
     "name": "Light rain/heavy fog/light snow",
     "minutes_twins": 7,
