@@ -67,3 +67,9 @@ python app.py
 
 ---
 "You dream it and I'll do my best to build it!"
+
+## Changelog
+
+- UI: Home styling matches Work; Work fixed last and always checked; Daycare aligned with drag handle; School arrival dropdown appears only when School is checked.
+- Logic: External variable minutes are distributed proportionally across transit legs; constrained arrivals (School/Work) remain fixed; `get_travel_minutes()` adds 10-min buffer for legs to Work.
+- Docs: README refreshed with Journey Stops, constraints, proportional bump, sticky summary, management pages, and local run steps.
