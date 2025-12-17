@@ -1,0 +1,52 @@
+{
+  "work_buffer_minutes": 10,
+  "inline_timer_enabled": true,
+  "emoji_enabled": true,
+  "work_meeting_default": "08:30",
+  "stops": {
+    "home": {
+      "always_on": false,
+      "default_on": false,
+      "arrival_dropdown_enabled": false,
+      "arrival": {
+        "start": "07:00",
+        "end": "09:00",
+        "step": 5,
+        "default": "08:00"
+      }
+    },
+    "school": {
+      "always_on": false,
+      "default_on": false,
+      "arrival_dropdown_enabled": true,
+      "arrival": {
+        "start": "07:00",
+        "end": "08:00",
+        "step": 5,
+        "default": "07:50"
+      }
+    },
+    "daycare": {
+      "always_on": false,
+      "default_on": false,
+      "arrival_dropdown_enabled": false,
+      "arrival": {
+        "start": "07:00",
+        "end": "09:00",
+        "step": 5,
+        "default": "08:00"
+      }
+    },
+    "work": {
+      "always_on": true,
+      "default_on": true,
+      "arrival_dropdown_enabled": true,
+      "arrival": {
+        "start": "07:00",
+        "end": "10:00",
+        "step": 5,
+        "default": "08:30"
+      }
+    }
+  }
+}

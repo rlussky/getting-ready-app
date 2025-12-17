@@ -76,10 +76,10 @@
 
     <h1>Getting Ready Timing Calculator</h1>
     <div style="margin-bottom: 20px;">
-        <a href="/timer" style="display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;"> Timer Activities</a>
         <a href="/history" style="display: inline-block; background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;"> History & Insights</a>
         <a href="/manage_activities" style="display: inline-block; background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;"> Manage Activities</a>
-        <a href="/manage_routes" style="display: inline-block; background: #17a2b8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;"> Manage Routes</a>
+        <a href="/manage_routes" style="display: inline-block; background: #17a2b8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;"> Manage Routes</a>
+        <a href="/settings" style="display: inline-block; background: #343a40; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;"> Settings</a>
     </div>
 
     <form method="POST" id="mainForm" autocomplete="off">
@@ -94,24 +94,53 @@
                 </li>
                 <li data-stop="school" style="margin-bottom:6px;cursor:move; display:flex; align-items:center; gap:8px;">
                     <span class="drag-handle" style="cursor:grab;user-select:none;font-size:1.3em;">☰</span>
-                    <label style="display:flex; align-items:center; gap:6px;"><input id="school_checkbox" type="checkbox" {% if 'school' in stop_locations %}checked{% endif %} onchange="toggleStop('school'); toggleSchoolTime();"> School</label>
+                    {% set school_cfg = settings.stops['school'] %}
+                    <label style="display:flex; align-items:center; gap:6px;"><input id="school_checkbox" type="checkbox" {% if school_cfg.default_on or ('school' in stop_locations) %}checked{% endif %} onchange="toggleStop('school'); toggleSchoolTime();"> School</label>
+                    {% if school_cfg.arrival_dropdown_enabled %}
                     <span id="school_time_container" style="display:none; font-size:0.95em;">
                         School arrival:
                         <select name="school_arrival_time" id="school_arrival_time" style="padding:4px;">
-                            {% for h in range(7,9) %}
-                                {% for m in range(0,60,5) %}
-                                    {% if h < 8 or (h == 8 and m == 0) %}
+                            {% set start_h = school_cfg.arrival.start.split(':')[0]|int %}
+                            {% set start_m = school_cfg.arrival.start.split(':')[1]|int %}
+                            {% set end_h = school_cfg.arrival.end.split(':')[0]|int %}
+                            {% set end_m = school_cfg.arrival.end.split(':')[1]|int %}
+                            {% set step = school_cfg.arrival.step|int %}
+                            {% for h in range(start_h, end_h+1) %}
+                                {% for m in range(0,60,step) %}
+                                    {% if (h > start_h or m >= start_m) and (h < end_h or m <= end_m) %}
                                         {% set t = '{:02d}:{:02d}'.format(h,m) %}
-                                        <option value="{{ t }}" {% if school_arrival_time==t or (not school_arrival_time and t=='07:50') %}selected{% endif %}>{{ t }} AM</option>
+                                        <option value="{{ t }}" {% if school_arrival_time==t or (not school_arrival_time and t==school_cfg.arrival.default) %}selected{% endif %}>{{ t }} {% if h<12 %}AM{% else %}PM{% endif %}</option>
                                     {% endif %}
                                 {% endfor %}
                             {% endfor %}
                         </select>
                     </span>
+                    {% endif %}
                 </li>
+                {% set daycare_cfg = settings.stops['daycare'] %}
                 <li data-stop="daycare" style="margin-bottom:6px;cursor:move; display:flex; align-items:center; gap:8px;">
                     <span class="drag-handle" style="cursor:grab;user-select:none;font-size:1.3em;">☰</span>
-                    <label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" {% if 'daycare' in stop_locations %}checked{% endif %} onchange="toggleStop('daycare')"> Daycare</label>
+                    <label style="display:flex; align-items:center; gap:6px;"><input id="daycare_checkbox" type="checkbox" {% if daycare_cfg.default_on or ('daycare' in stop_locations) %}checked{% endif %} onchange="toggleStop('daycare'); toggleDaycareTime();"> Daycare</label>
+                    {% if daycare_cfg.arrival_dropdown_enabled %}
+                    <span id="daycare_time_container" style="display:none; font-size:0.95em;">
+                        Daycare arrival:
+                        <select name="daycare_arrival_time" id="daycare_arrival_time" style="padding:4px;">
+                            {% set start_h = daycare_cfg.arrival.start.split(':')[0]|int %}
+                            {% set start_m = daycare_cfg.arrival.start.split(':')[1]|int %}
+                            {% set end_h = daycare_cfg.arrival.end.split(':')[0]|int %}
+                            {% set end_m = daycare_cfg.arrival.end.split(':')[1]|int %}
+                            {% set step = daycare_cfg.arrival.step|int %}
+                            {% for h in range(start_h, end_h+1) %}
+                                {% for m in range(0,60,step) %}
+                                    {% if (h > start_h or m >= start_m) and (h < end_h or m <= end_m) %}
+                                        {% set t = '{:02d}:{:02d}'.format(h,m) %}
+                                        <option value="{{ t }}" {% if daycare_arrival_time==t or (not daycare_arrival_time and t==daycare_cfg.arrival.default) %}selected{% endif %}>{{ t }} {% if h<12 %}AM{% else %}PM{% endif %}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        </select>
+                    </span>
+                    {% endif %}
                 </li>
                 <li data-stop="work" style="margin-bottom:6px;cursor:default; display:flex; align-items:center; gap:8px;">
                     <span class="drag-handle" style="cursor:default;user-select:none;font-size:1.3em;opacity:0.4;">☰</span>
@@ -119,9 +148,17 @@
                     <span style="font-size:0.95em;">
                         First work meeting:
                         <select name="work_meeting_time" id="work_meeting_time" style="padding:4px;">
-                            {% for h in range(7,10) %}{% for m in range(0,60,5) %}
-                                {% set t = '{:02d}:{:02d}'.format(h,m) %}
-                                <option value="{{ t }}" {% if work_meeting_time==t or (not work_meeting_time and t=='08:30') %}selected{% endif %}>{{ t|replace(":", ".") }} {% if h<12 %}AM{% else %}PM{% endif %}</option>
+                            {% set work_cfg = settings.stops['work'] %}
+                            {% set start_h = work_cfg.arrival.start.split(':')[0]|int %}
+                            {% set start_m = work_cfg.arrival.start.split(':')[1]|int %}
+                            {% set end_h = work_cfg.arrival.end.split(':')[0]|int %}
+                            {% set end_m = work_cfg.arrival.end.split(':')[1]|int %}
+                            {% set step = work_cfg.arrival.step|int %}
+                            {% for h in range(start_h, end_h+1) %}{% for m in range(0,60,step) %}
+                                {% if (h > start_h or m >= start_m) and (h < end_h or m <= end_m) %}
+                                    {% set t = '{:02d}:{:02d}'.format(h,m) %}
+                                    <option value="{{ t }}" {% if work_meeting_time==t or (not work_meeting_time and t==work_cfg.arrival.default) %}selected{% endif %}>{{ t|replace(":", ".") }} {% if h<12 %}AM{% else %}PM{% endif %}</option>
+                                {% endif %}
                             {% endfor %}{% endfor %}
                         </select>
                     </span>
@@ -177,12 +214,30 @@
                                     <span class="note"> - {{ item.activity.note }}</span>
                                 {% endif %}
                             </label>
+                            {% if sortable and settings.inline_timer_enabled %}
+                            <span style="display:flex; align-items:center; gap:6px;">
+                                <span id="mini-timer-{{ item.idx }}" class="timer-display" style="font-size:1.1em; font-weight:bold; min-width:70px; text-align:center; font-family:'Courier New', monospace;">00:00</span>
+                                {% if not item.activity.same_for_both_contexts %}
+                                <select id="mini-context-{{ item.idx }}" style="padding:4px; font-size:0.9em;">
+                                    <option value="false">Regular</option>
+                                    <option value="true">Twin</option>
+                                </select>
+                                {% endif %}
+                                <button class="start-btn" style="padding:6px 10px;" onclick="homeStartTimer({{ item.idx }}, '{{ item.activity.name }}'); return false;">Start</button>
+                                <button id="mini-stop-{{ item.idx }}" class="stop-btn" style="padding:6px 10px; display:none;" onclick="homeStopTimer({{ item.idx }}); return false;">Stop</button>
+                                <button id="mini-reset-{{ item.idx }}" class="reset-btn" style="padding:6px 10px; display:none;" onclick="homeResetTimer({{ item.idx }}); return false;">Reset</button>
+                                <button id="mini-save-{{ item.idx }}" class="save-btn" style="padding:6px 10px; display:none;" onclick="homeSaveTimer({{ item.idx }}, '{{ item.activity.name }}'); return false;">Save</button>
+                                <span id="mini-saved-{{ item.idx }}" class="saved-message" style="display:none;">✓ Saved</span>
+                            </span>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>
             {% endif %}
         {% endfor %}
     </form>
+
+    
 
     {% if schedule %}
         <div class="results">
@@ -409,11 +464,97 @@
         }
     }
 
+    function toggleDaycareTime() {
+        var box = document.getElementById('daycare_checkbox');
+        var cont = document.getElementById('daycare_time_container');
+        if (box && cont) {
+            cont.style.display = box.checked ? 'inline' : 'none';
+        }
+    }
+
+    // Inline per-activity mini timer in selection sections
+    const homeTimers = {};
+    function homeStartTimer(index, activityName) {
+        if (homeTimers[index]) {
+            clearInterval(homeTimers[index].interval);
+        }
+        homeTimers[index] = { name: activityName, startTime: Date.now(), elapsed: 0, interval: null };
+        homeTimers[index].interval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - homeTimers[index].startTime) / 1000);
+            homeTimers[index].elapsed = elapsed;
+            homeUpdateDisplay(index, elapsed);
+        }, 100);
+        document.getElementById('mini-stop-' + index).style.display = 'inline-block';
+        document.getElementById('mini-reset-' + index).style.display = 'inline-block';
+    }
+    function homeStopTimer(index) {
+        if (homeTimers[index] && homeTimers[index].interval) {
+            clearInterval(homeTimers[index].interval);
+            homeTimers[index].interval = null;
+            document.getElementById('mini-stop-' + index).style.display = 'none';
+            document.getElementById('mini-save-' + index).style.display = 'inline-block';
+        }
+    }
+    function homeResetTimer(index) {
+        if (homeTimers[index]) {
+            if (homeTimers[index].interval) { clearInterval(homeTimers[index].interval); }
+            delete homeTimers[index];
+        }
+        document.getElementById('mini-timer-' + index).textContent = '00:00';
+        document.getElementById('mini-stop-' + index).style.display = 'none';
+        document.getElementById('mini-reset-' + index).style.display = 'none';
+        document.getElementById('mini-save-' + index).style.display = 'none';
+        document.getElementById('mini-saved-' + index).style.display = 'none';
+    }
+    function homeSaveTimer(index, activityName) {
+        if (!homeTimers[index]) return;
+        const durationSeconds = homeTimers[index].elapsed;
+        const contextSelect = document.getElementById('mini-context-' + index);
+        const twinsMorning = contextSelect ? (contextSelect.value === 'true') : false;
+        
+        const saveFetch = (twins) => {
+            return fetch('/save_timing', {
+                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ 'activity_name': activityName, 'duration_seconds': durationSeconds, 'twins_morning': twins })
+            }).then(r => r.json());
+        };
+        
+        // Check if activity should record to both contexts
+        const sameBoth = !contextSelect; // If no context select, it's same_for_both
+        
+        if (sameBoth) {
+            // Save for both regular and twin
+            Promise.all([saveFetch(false), saveFetch(true)]).then(results => {
+                if (results[0].success) {
+                    document.getElementById('mini-saved-' + index).style.display = 'inline';
+                    document.getElementById('mini-save-' + index).style.display = 'none';
+                    setTimeout(() => { homeResetTimer(index); }, 1000);
+                }
+            });
+        } else {
+            // Save only for selected context
+            saveFetch(twinsMorning).then(data => {
+                if (data.success) {
+                    document.getElementById('mini-saved-' + index).style.display = 'inline';
+                    document.getElementById('mini-save-' + index).style.display = 'none';
+                    setTimeout(() => { homeResetTimer(index); }, 1000);
+                }
+            });
+        }
+    }
+    function homeUpdateDisplay(index, seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        const display = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        document.getElementById('mini-timer-' + index).textContent = display;
+    }
+
     window.addEventListener('DOMContentLoaded', function() {
         updateStopsHiddenInputs();
         enableDragDrop();
         attachAllListeners();
         toggleSchoolTime();
+        toggleDaycareTime();
         updateScheduleSummary();
         enableActivityDrag();
     });

@@ -31,6 +31,7 @@ def schedule_json():
 
 ACTIVITIES_DB = 'activities_db.json'
 ROUTES_DB = 'routes_db.json'
+SETTINGS_DB = 'settings_db.json'
 
 # Database functions
 def load_activities():
@@ -67,6 +68,61 @@ def save_routes(routes):
     with open(ROUTES_DB, 'w') as f:
         json.dump(routes, f, indent=2)
 
+def default_settings():
+    return {
+        'work_buffer_minutes': 10,
+        'inline_timer_enabled': False,
+        'emoji_enabled': True,
+        'work_meeting_default': '08:30',
+        'stops': {
+            'home': {
+                'always_on': True,
+                'default_on': True,
+                'arrival_dropdown_enabled': False
+            },
+            'school': {
+                'always_on': False,
+                'default_on': False,
+                'arrival_dropdown_enabled': True,
+                'arrival': { 'start': '07:00', 'end': '08:00', 'step': 5, 'default': '07:50' }
+            },
+            'daycare': {
+                'always_on': False,
+                'default_on': False,
+                'arrival_dropdown_enabled': False,
+                'arrival': { 'start': '07:00', 'end': '09:00', 'step': 5, 'default': '08:00' }
+            },
+            'work': {
+                'always_on': True,
+                'default_on': True,
+                'arrival_dropdown_enabled': True,
+                'arrival': { 'start': '07:00', 'end': '10:00', 'step': 5, 'default': '08:30' }
+            }
+        }
+    }
+
+def load_settings():
+    if not os.path.exists(SETTINGS_DB):
+        return default_settings()
+    try:
+        with open(SETTINGS_DB, 'r') as f:
+            data = json.load(f)
+            base = default_settings()
+            base.update(data or {})
+            # nested merge for stops
+            if 'stops' in (data or {}):
+                for k, v in data['stops'].items():
+                    base['stops'].setdefault(k, {})
+                    base['stops'][k].update(v or {})
+            return base
+    except Exception as e:
+        logger.warning(f"Failed to load settings, using defaults: {e}")
+        return default_settings()
+
+def save_settings(settings):
+    with open(SETTINGS_DB, 'w') as f:
+        json.dump(settings, f, indent=2)
+
 def get_route(from_loc, to_loc):
     """Find a route between two locations"""
     routes = load_routes()
@@ -82,7 +138,9 @@ def get_travel_minutes(from_loc, to_loc):
         return None
     minutes = route['minutes']
     if to_loc == 'work':
-        minutes += 10  # 10-minute walk-in buffer
+        settings = load_settings()
+        buffer = int(settings.get('work_buffer_minutes', 10) or 0)
+        minutes += buffer
     return minutes
 
 def get_available_destinations(from_loc):
@@ -112,6 +170,7 @@ def home():
     
     # Load activities and group by section
     all_activities = load_activities()
+    settings = load_settings()
     selected_activities = session.get('selected_activities', [])
     
     # Add statistics to activities
@@ -143,8 +202,9 @@ def home():
     journey_stops = session.get('journey_stops', [])
     boy_morning = any(stop.get('location') == 'school' for stop in journey_stops)
     school_arrival_time = session.get('school_arrival_time', None)
+    daycare_arrival_time = session.get('daycare_arrival_time', None)
     work_meeting_time = session.get('work_meeting_time', None)
-    schedule = calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time)
+    schedule = calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time, daycare_arrival_time)
 
     # Get available routes for journey builder
     routes = load_routes()
@@ -158,9 +218,10 @@ def home():
                          work_meeting_time=work_meeting_time,
                          journey_stops=journey_stops,
                          all_locations=all_locations,
-                         routes=routes)
+                         routes=routes,
+                         settings=settings)
 
-def calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time):
+def calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time, daycare_arrival_time=None):
     """Calculate the complete schedule based on selected stops and constraints."""
     if not journey_stops or len(journey_stops) == 0:
         return None
@@ -199,6 +260,13 @@ def calculate_schedule(journey_stops, selected_activities, all_activities, boy_m
             constraints.append(('work', work_meeting_time))
         except ValueError:
             logger.warning(f"Invalid work meeting time: {work_meeting_time}")
+            return None
+    if daycare_arrival_time and 'daycare' in stops_list:
+        try:
+            datetime.strptime(daycare_arrival_time, '%H:%M')
+            constraints.append(('daycare', daycare_arrival_time))
+        except ValueError:
+            logger.warning(f"Invalid daycare arrival time: {daycare_arrival_time}")
             return None
     if not constraints:
         return None
@@ -376,7 +444,8 @@ def add_activity():
                 'minutes_twins': int(request.form.get('minutes_twins', 0)),
                 'minutes_no_twins': int(request.form.get('minutes_no_twins', 0)),
                 'location': request.form.get('location', ''),
-                'note': request.form.get('note', '')
+                'note': request.form.get('note', ''),
+                'same_for_both_contexts': False
             }
             activities.append(new_activity)
             save_activities(activities)
@@ -386,6 +455,16 @@ def add_activity():
             logger.error(f"Error adding activity: {e}")
             return render_template('edit_activity.html', activity={}, idx=None, add_mode=True, error="Invalid form data")
     return render_template('edit_activity.html', activity={}, idx=None, add_mode=True)
+
+@app.route('/update_activity_context/<int:idx>', methods=['POST'])
+def update_activity_context(idx):
+    """Update same_for_both_contexts flag for an activity."""
+    activities = load_activities()
+    if idx >= 0 and idx < len(activities):
+        activities[idx]['same_for_both_contexts'] = request.form.get('same_for_both_contexts') == 'on'
+        save_activities(activities)
+        return {'success': True}
+    return {'success': False}, 400
 
 @app.route('/remove_activity/<int:idx>', methods=['POST'])
 def remove_activity(idx):
@@ -408,6 +487,7 @@ def edit_activity(idx):
         activity['location'] = request.form['location']
         activity['note'] = request.form['note']
         activity['section'] = request.form['section']
+        activity['same_for_both_contexts'] = request.form.get('same_for_both_contexts') == 'on'
         activities[idx] = activity
         save_activities(activities)
         return redirect(url_for('home'))
@@ -481,19 +561,52 @@ def remove_route(idx):
         save_routes(routes)
     return redirect(url_for('manage_routes'))
 
-@app.route('/timer', methods=['GET'])
-def timer():
-    activities = load_activities()
-    twins_morning = request.args.get('twins', 'false') == 'true'
-    
-    sections = {}
-    for activity in activities:
-        section = activity['section']
-        if section not in sections:
-            sections[section] = []
-        sections[section].append(activity)
-    
-    return render_template('timer.html', sections=sections, twins_morning=twins_morning)
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings_page():
+    settings = load_settings()
+    if request.method == 'POST':
+        try:
+            work_buffer = int(request.form.get('work_buffer_minutes', settings['work_buffer_minutes']))
+            inline_timer_enabled = request.form.get('inline_timer_enabled') == 'on'
+            emoji_enabled = request.form.get('emoji_enabled') == 'on'
+            work_default = request.form.get('work_meeting_default', settings['work_meeting_default'])
+
+            # Per-stop config
+            for stop in ['school','daycare','work','home']:
+                always_on = request.form.get(f'stops_{stop}_always_on') == 'on'
+                default_on = request.form.get(f'stops_{stop}_default_on') == 'on'
+                arrival_enabled = request.form.get(f'stops_{stop}_arrival_enabled') == 'on'
+                arrival_start = request.form.get(f'stops_{stop}_arrival_start', settings['stops'][stop]['arrival']['start'] if 'arrival' in settings['stops'][stop] else '07:00')
+                arrival_end = request.form.get(f'stops_{stop}_arrival_end', settings['stops'][stop]['arrival']['end'] if 'arrival' in settings['stops'][stop] else '09:00')
+                arrival_step = int(request.form.get(f'stops_{stop}_arrival_step', settings['stops'][stop]['arrival']['step'] if 'arrival' in settings['stops'][stop] else 5))
+                arrival_default = request.form.get(f'stops_{stop}_arrival_default', settings['stops'][stop]['arrival']['default'] if 'arrival' in settings['stops'][stop] else '08:00')
+
+                settings['stops'].setdefault(stop, {})
+                settings['stops'][stop].update({
+                    'always_on': always_on,
+                    'default_on': default_on,
+                    'arrival_dropdown_enabled': arrival_enabled,
+                    'arrival': {
+                        'start': arrival_start,
+                        'end': arrival_end,
+                        'step': arrival_step,
+                        'default': arrival_default
+                    }
+                })
+
+            settings.update({
+                'work_buffer_minutes': work_buffer,
+                'inline_timer_enabled': inline_timer_enabled,
+                'emoji_enabled': emoji_enabled,
+                'work_meeting_default': work_default
+            })
+            save_settings(settings)
+            return redirect(url_for('settings_page'))
+        except Exception as e:
+            logger.error(f"Error saving settings: {e}")
+            # fall through to render with current settings
+    return render_template('settings.html', settings=settings)
 
 @app.route('/save_timing', methods=['POST'])
 def save_timing():

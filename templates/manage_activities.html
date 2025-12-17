@@ -28,7 +28,6 @@
     <h1>Manage Activities Database</h1>
     <div class="nav-links">
         <a href="/">← Back to Calculator</a>
-        <a href="/timer">Timer Activities</a>
         <a href="/history">📊 View History & Insights</a>
     </div>
     
@@ -46,6 +45,7 @@
                 <th>Records</th>
                 <th>Location</th>
                 <th>Note</th>
+                <th>Same For Both</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -87,6 +87,9 @@
                     <td>{{ activity.location }}</td>
                     <td>{{ activity.note }}</td>
                     <td>
+                        <input type="checkbox" {% if activity.same_for_both_contexts %}checked{% endif %} onchange="updateActivityContext({{ idx }}, this.checked)" title="Use same timing for both regular and twin mornings">
+                    </td>
+                    <td>
                         <a href="/edit_activity/{{ idx }}"><button>Edit</button></a>
                         <form method="post" action="/remove_activity/{{ idx }}" style="display:inline">
                             <button type="submit" class="delete" onclick="return confirm('Are you sure?')">Delete</button>
@@ -96,5 +99,15 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <script>
+    function updateActivityContext(idx, checked) {
+        fetch(`/update_activity_context/${idx}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ 'same_for_both_contexts': checked ? 'on' : 'off' })
+        }).catch(err => console.error('Update failed:', err));
+    }
+    </script>
 </body>
 </html>

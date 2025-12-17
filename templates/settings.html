@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
+        h1 { color: #333; }
+        form { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+        .row { display: flex; gap: 16px; margin-bottom: 12px; align-items: center; }
+        .row label { min-width: 220px; font-weight: bold; }
+        input[type="text"], input[type="number"], select { padding: 6px; }
+        .actions { margin-top: 16px; }
+        button { background: #007bff; color: white; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; }
+        a { margin-right: 10px; text-decoration: none; color: #007bff; }
+    </style>
+</head>
+<body>
+    <h1>App Settings</h1>
+    <div style="margin-bottom:12px;">
+        <a href="/">← Back to Calculator</a>
+        <a href="/timer">Timer</a>
+        <a href="/history">History & Insights</a>
+        <a href="/manage_activities">Manage Activities</a>
+    </div>
+
+    <form method="POST">
+        <div class="row">
+            <label for="work_buffer_minutes">Work arrival buffer (minutes):</label>
+            <input id="work_buffer_minutes" name="work_buffer_minutes" type="number" min="0" value="{{ settings.work_buffer_minutes }}">
+        </div>
+
+        <div class="row">
+            <label for="inline_timer_enabled">Enable inline timer on Home:</label>
+            <input id="inline_timer_enabled" name="inline_timer_enabled" type="checkbox" {% if settings.inline_timer_enabled %}checked{% endif %}>
+        </div>
+
+        <div class="row">
+            <label for="emoji_enabled">Show emojis in schedule summary:</label>
+            <input id="emoji_enabled" name="emoji_enabled" type="checkbox" {% if settings.emoji_enabled %}checked{% endif %}>
+        </div>
+
+        <fieldset style="border:1px solid #ddd; padding: 12px; border-radius: 6px; margin-top: 12px;">
+            <legend>Stops Configuration</legend>
+            {% for stop in ['school','daycare','work'] %}
+            <div style="border:1px dashed #ddd; padding:10px; border-radius:6px; margin-bottom:10px;">
+                <div class="row"><strong style="text-transform:capitalize;">{{ stop }}</strong></div>
+                <div class="row">
+                    <label>Always On:</label>
+                    <input type="checkbox" name="stops_{{stop}}_always_on" {% if settings.stops[stop].always_on %}checked{% endif %}>
+                </div>
+                <div class="row">
+                    <label>Default On:</label>
+                    <input type="checkbox" name="stops_{{stop}}_default_on" {% if settings.stops[stop].default_on %}checked{% endif %}>
+                </div>
+                <div class="row">
+                    <label>Enable Arrival Dropdown:</label>
+                    <input type="checkbox" name="stops_{{stop}}_arrival_enabled" {% if settings.stops[stop].arrival_dropdown_enabled %}checked{% endif %}>
+                </div>
+                <div class="row">
+                    <label>Arrival Start:</label>
+                    <input name="stops_{{stop}}_arrival_start" type="text" value="{{ settings.stops[stop].arrival.start }}">
+                </div>
+                <div class="row">
+                    <label>Arrival End:</label>
+                    <input name="stops_{{stop}}_arrival_end" type="text" value="{{ settings.stops[stop].arrival.end }}">
+                </div>
+                <div class="row">
+                    <label>Arrival Step (min):</label>
+                    <input name="stops_{{stop}}_arrival_step" type="number" min="1" value="{{ settings.stops[stop].arrival.step }}">
+                </div>
+                <div class="row">
+                    <label>Arrival Default:</label>
+                    <input name="stops_{{stop}}_arrival_default" type="text" value="{{ settings.stops[stop].arrival.default }}">
+                </div>
+            </div>
+            {% endfor %}
+        </fieldset>
+
+        <div class="row" style="margin-top:12px;">
+            <label for="work_meeting_default">Default first work meeting (HH:MM):</label>
+            <input id="work_meeting_default" name="work_meeting_default" type="text" value="{{ settings.work_meeting_default }}">
+        </div>
+
+        <div class="actions">
+            <button type="submit">Save Settings</button>
+        </div>
+    </form>
+</body>
+</html>

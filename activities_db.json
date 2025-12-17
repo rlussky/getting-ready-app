@@ -24,7 +24,8 @@
     "minutes_no_twins": 15,
     "location": "In Transit",
     "note": "",
-    "order": 2
+    "order": 2,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily External Variables",
@@ -33,7 +34,8 @@
     "minutes_no_twins": 7,
     "location": "In Transit",
     "note": "need to plan additional longer walking time, additional longer bathroom stops, etc",
-    "order": 3
+    "order": 3,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -42,7 +44,9 @@
     "minutes_no_twins": 15,
     "location": "bedroom",
     "note": "",
-    "order": 4
+    "order": 4,
+    "same_for_both_contexts": true,
+    "timing_history": []
   },
   {
     "section": "Daily Minimum Activities",
@@ -51,7 +55,8 @@
     "minutes_no_twins": 5,
     "location": "pumping space",
     "note": "",
-    "order": 5
+    "order": 5,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -61,7 +66,8 @@
     "location": "pumping space",
     "note": "",
     "timing_history": [],
-    "order": 6
+    "order": 6,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -70,7 +76,8 @@
     "minutes_no_twins": 30,
     "location": "pumping space",
     "note": "",
-    "order": 7
+    "order": 7,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -79,7 +86,8 @@
     "minutes_no_twins": 10,
     "location": "pumping space",
     "note": "",
-    "order": 8
+    "order": 8,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -88,7 +96,8 @@
     "minutes_no_twins": 2,
     "location": "bedroom",
     "note": "",
-    "order": 9
+    "order": 9,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -97,7 +106,8 @@
     "minutes_no_twins": 3,
     "location": "bathroom",
     "note": "",
-    "order": 10
+    "order": 10,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -106,7 +116,8 @@
     "minutes_no_twins": 5,
     "location": "bathroom",
     "note": "",
-    "order": 11
+    "order": 11,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -115,7 +126,8 @@
     "minutes_no_twins": 2,
     "location": "bathroom",
     "note": "",
-    "order": 12
+    "order": 12,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -124,7 +136,8 @@
     "minutes_no_twins": 3,
     "location": "bedroom",
     "note": "",
-    "order": 13
+    "order": 13,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -133,7 +146,8 @@
     "minutes_no_twins": 5,
     "location": "main floor",
     "note": "",
-    "order": 14
+    "order": 14,
+    "same_for_both_contexts": true
   },
   {
     "section": "Daily Minimum Activities",
@@ -142,7 +156,8 @@
     "minutes_no_twins": 2,
     "location": "main floor",
     "note": "",
-    "order": 15
+    "order": 15,
+    "same_for_both_contexts": false
   },
   {
     "section": "Add Ons",
@@ -151,7 +166,8 @@
     "minutes_no_twins": 2,
     "location": "bathroom",
     "note": "rinse and put in jar with cleanser",
-    "order": 16
+    "order": 16,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -160,7 +176,8 @@
     "minutes_no_twins": 3,
     "location": "bedroom",
     "note": "if not done night before",
-    "order": 17
+    "order": 17,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -169,7 +186,8 @@
     "minutes_no_twins": 15,
     "location": "shower",
     "note": "(start shower, wash body, squeegee, dry off)",
-    "order": 18
+    "order": 18,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -178,7 +196,8 @@
     "minutes_no_twins": 20,
     "location": "shower",
     "note": "",
-    "order": 19
+    "order": 19,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -187,7 +206,8 @@
     "minutes_no_twins": 4,
     "location": "shower",
     "note": "",
-    "order": 20
+    "order": 20,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -196,7 +216,8 @@
     "minutes_no_twins": 8,
     "location": "shower",
     "note": "Wash, condition, clean up hair fallout",
-    "order": 21
+    "order": 21,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -205,7 +226,8 @@
     "minutes_no_twins": 8,
     "location": "shower",
     "note": "Squish to condish, rinse hair upside down, mousse, curl cream, hair plopped",
-    "order": 22
+    "order": 22,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -214,7 +236,8 @@
     "minutes_no_twins": 5,
     "location": "bathroom",
     "note": "gel, hair spray, plop",
-    "order": 23
+    "order": 23,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -223,7 +246,8 @@
     "minutes_no_twins": 10,
     "location": "bathroom",
     "note": "clip, diffuse just top layer",
-    "order": 24
+    "order": 24,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -232,7 +256,8 @@
     "minutes_no_twins": 20,
     "location": "bathroom",
     "note": "clip, diffuse all",
-    "order": 25
+    "order": 25,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -241,7 +266,8 @@
     "minutes_no_twins": 8,
     "location": "bathroom",
     "note": "",
-    "order": 26
+    "order": 26,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -250,7 +276,8 @@
     "minutes_no_twins": 20,
     "location": "bathroom",
     "note": "apply straightening products, clip into sections, use blow dry brush",
-    "order": 27
+    "order": 27,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -259,7 +286,8 @@
     "minutes_no_twins": 15,
     "location": "bathroom",
     "note": "curl/straighten where needed",
-    "order": 28
+    "order": 28,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -268,7 +296,8 @@
     "minutes_no_twins": 8,
     "location": "bathroom",
     "note": "straighten roots, curl wonky bits",
-    "order": 29
+    "order": 29,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -277,7 +306,8 @@
     "minutes_no_twins": 5,
     "location": "",
     "note": "",
-    "order": 30
+    "order": 30,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -286,7 +316,8 @@
     "minutes_no_twins": 8,
     "location": "main floor",
     "note": "",
-    "order": 31
+    "order": 31,
+    "same_for_both_contexts": true
   },
   {
     "section": "Add Ons",
@@ -295,6 +326,7 @@
     "minutes_no_twins": 5,
     "location": "main floor",
     "note": "if not done night before",
-    "order": 32
+    "order": 32,
+    "same_for_both_contexts": true
   }
 ]
