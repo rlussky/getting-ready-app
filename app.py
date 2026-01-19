@@ -15,6 +15,8 @@ app.secret_key = os.urandom(24)
 def schedule_json():
     school_arrival_time = request.form.get('school_arrival_time')
     work_meeting_time = request.form.get('work_meeting_time')
+    daycare_arrival_time = request.form.get('daycare_arrival_time')
+    twins_morning = request.form.get('twins_morning') == 'on'
     selected_activities = request.form.getlist('activities')
     journey_stops = []
     stop_index = 0
@@ -24,9 +26,8 @@ def schedule_json():
             break
         journey_stops.append({'location': location})
         stop_index += 1
-    boy_morning = any(stop.get('location') == 'school' for stop in journey_stops)
     all_activities = load_activities()
-    schedule = calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time)
+    schedule = calculate_schedule(journey_stops, selected_activities, all_activities, twins_morning, school_arrival_time, work_meeting_time, daycare_arrival_time)
     return jsonify(schedule or {})
 
 ACTIVITIES_DB = 'activities_db.json'
@@ -74,6 +75,7 @@ def default_settings():
         'inline_timer_enabled': False,
         'emoji_enabled': True,
         'work_meeting_default': '08:30',
+        'context_determination_method': 'explicit_toggle',  # 'explicit_toggle' or 'school_presence'
         'stops': {
             'home': {
                 'always_on': True,
@@ -153,7 +155,9 @@ def get_available_destinations(from_loc):
 def home():
     if request.method == 'POST':
         # Save form data
+        session['twins_morning'] = request.form.get('twins_morning') == 'on'
         session['school_arrival_time'] = request.form.get('school_arrival_time')
+        session['daycare_arrival_time'] = request.form.get('daycare_arrival_time')
         session['work_meeting_time'] = request.form.get('work_meeting_time')
         session['selected_activities'] = request.form.getlist('activities')
 
@@ -200,11 +204,11 @@ def home():
     
     # Calculate journey times
     journey_stops = session.get('journey_stops', [])
-    boy_morning = any(stop.get('location') == 'school' for stop in journey_stops)
+    twins_morning = session.get('twins_morning', False)
     school_arrival_time = session.get('school_arrival_time', None)
     daycare_arrival_time = session.get('daycare_arrival_time', None)
     work_meeting_time = session.get('work_meeting_time', None)
-    schedule = calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time, daycare_arrival_time)
+    schedule = calculate_schedule(journey_stops, selected_activities, all_activities, twins_morning, school_arrival_time, work_meeting_time, daycare_arrival_time)
 
     # Get available routes for journey builder
     routes = load_routes()
@@ -213,15 +217,16 @@ def home():
     return render_template('home.html',
                          sections=sections,
                          schedule=schedule,
-                         boy_morning=boy_morning,
+                         twins_morning=twins_morning,
                          school_arrival_time=school_arrival_time,
+                         daycare_arrival_time=daycare_arrival_time,
                          work_meeting_time=work_meeting_time,
                          journey_stops=journey_stops,
                          all_locations=all_locations,
                          routes=routes,
                          settings=settings)
 
-def calculate_schedule(journey_stops, selected_activities, all_activities, boy_morning, school_arrival_time, work_meeting_time, daycare_arrival_time=None):
+def calculate_schedule(journey_stops, selected_activities, all_activities, twins_morning, school_arrival_time, work_meeting_time, daycare_arrival_time=None):
     """Calculate the complete schedule based on selected stops and constraints."""
     if not journey_stops or len(journey_stops) == 0:
         return None
@@ -236,7 +241,8 @@ def calculate_schedule(journey_stops, selected_activities, all_activities, boy_m
             idx = int(idx_str)
             if idx < len(all_activities):
                 activity = all_activities[idx]
-                minutes = activity.get('minutes_no_twins', 0)
+                # Use twins or no-twins estimate based on context toggle
+                minutes = activity.get('minutes_twins', 0) if twins_morning else activity.get('minutes_no_twins', 0)
                 if activity.get('section') == 'Daily External Variables':
                     external_bump += minutes
                 else:
@@ -247,7 +253,7 @@ def calculate_schedule(journey_stops, selected_activities, all_activities, boy_m
 
     # Determine constraints
     constraints = []
-    if boy_morning and school_arrival_time and 'school' in stops_list:
+    if twins_morning and school_arrival_time and 'school' in stops_list:
         try:
             datetime.strptime(school_arrival_time, '%H:%M')
             constraints.append(('school', school_arrival_time))

@@ -85,6 +85,16 @@
     <form method="POST" id="mainForm" autocomplete="off">
         <h2>1. Morning Options</h2>
         <div style="background: #fff; border: 2px solid #007bff; border-radius: 8px; padding: 20px; margin: 20px 0; margin-bottom: 20px;">
+            <div style="margin-bottom:16px;">
+                <strong>Morning Context:</strong>
+                <label style="display:inline-flex; align-items:center; gap:8px; margin-right:20px;">
+                    <input type="radio" name="twins_morning" value="off" {% if not twins_morning %}checked{% endif %} onchange="updateScheduleSummary()"> No Twins Morning
+                </label>
+                <label style="display:inline-flex; align-items:center; gap:8px;">
+                    <input type="radio" name="twins_morning" value="on" {% if twins_morning %}checked{% endif %} onchange="updateScheduleSummary()"> Twins Morning
+                </label>
+            </div>
+
             <strong>Journey Stops:</strong>
             {% set stop_locations = journey_stops | map(attribute='location') | list %}
             <ul id="stops-list" style="list-style:none;padding:0;margin:10px 0 10px 0;">
@@ -219,8 +229,8 @@
                                 <span id="mini-timer-{{ item.idx }}" class="timer-display" style="font-size:1.1em; font-weight:bold; min-width:70px; text-align:center; font-family:'Courier New', monospace;">00:00</span>
                                 {% if not item.activity.same_for_both_contexts %}
                                 <select id="mini-context-{{ item.idx }}" style="padding:4px; font-size:0.9em;">
-                                    <option value="false">Regular</option>
-                                    <option value="true">Twin</option>
+                                    <option value="false">No Twins</option>
+                                    <option value="true">Twins</option>
                                 </select>
                                 {% endif %}
                                 <button class="start-btn" style="padding:6px 10px;" onclick="homeStartTimer({{ item.idx }}, '{{ item.activity.name }}'); return false;">Start</button>

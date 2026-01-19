@@ -6,7 +6,8 @@
     "minutes_no_twins": 8,
     "location": "In Transit",
     "note": "",
-    "order": 0
+    "order": 0,
+    "same_for_both_contexts": false
   },
   {
     "section": "Daily External Variables",
@@ -157,7 +158,8 @@
     "location": "main floor",
     "note": "",
     "order": 15,
-    "same_for_both_contexts": false
+    "same_for_both_contexts": false,
+    "timing_history": []
   },
   {
     "section": "Add Ons",
