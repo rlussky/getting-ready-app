@@ -39,17 +39,72 @@ A Flask web app that helps plan your morning by calculating when to wake up and 
 
 ```bash
 python -m venv venv
-./venv/Scripts/activate
+source venv/bin/activate   # Linux/Mac/Pi
+# or: .\venv\Scripts\activate   # Windows
 pip install -r requirements.txt
 ```
 
-2. Start the server:
+2. (Recommended) Set a stable secret key so sessions survive restarts:
+
+```bash
+export SECRET_KEY="some-random-string-here"
+```
+
+3. Start the server:
 
 ```bash
 python app.py
 ```
 
-3. Open the app at http://127.0.0.1:5000
+4. Open the app at http://<your-ip>:5000
+
+## Deploying on a Raspberry Pi
+
+1. Install Python 3 and pip if not already present:
+   ```bash
+   sudo apt update && sudo apt install python3 python3-venv python3-pip -y
+   ```
+2. Clone or copy the project to the Pi.
+3. Create a venv and install dependencies:
+   ```bash
+   cd getting-ready-app
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+4. Set a permanent secret key:
+   ```bash
+   echo 'export SECRET_KEY="$(python3 -c \"import secrets; print(secrets.token_hex(24))\")"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+5. Run the app:
+   ```bash
+   python3 app.py
+   ```
+   Access from any device on the same network at `http://<pi-ip>:5000`.
+
+6. (Optional) Auto-start on boot with a systemd service:
+   ```bash
+   sudo tee /etc/systemd/system/getting-ready.service > /dev/null <<EOF
+   [Unit]
+   Description=Getting Ready App
+   After=network.target
+
+   [Service]
+   User=$USER
+   WorkingDirectory=$(pwd)
+   Environment=SECRET_KEY=$(echo $SECRET_KEY)
+   ExecStart=$(pwd)/venv/bin/python app.py
+   Restart=always
+
+   [Install]
+   WantedBy=multi-user.target
+   EOF
+
+   sudo systemctl daemon-reload
+   sudo systemctl enable getting-ready
+   sudo systemctl start getting-ready
+   ```
 
 ## Files
 
@@ -57,8 +112,9 @@ python app.py
 - `templates/home.html`: UI for journey stops, activities, sticky summary.
 - `templates/manage_routes.html`, `templates/edit_route.html`: Route management UI.
 - `templates/manage_activities.html`, `templates/edit_activity.html`: Activity management UI.
-- `templates/timer.html`, `templates/history.html`: Timer and history views.
-- `routes_db.json`, `activities_db.json`: Data stores for routes and activities.
+- `templates/history.html`: Timing history and insights view.
+- `templates/settings.html`: App settings (work buffer, inline timer, per-stop config).
+- `routes_db.json`, `activities_db.json`, `settings_db.json`: Data stores for routes, activities, and settings.
 - `requirements.txt`: Python dependencies.
 
 ## Reference: Start Time Calculator CSV

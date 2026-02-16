@@ -16,7 +16,8 @@
     "minutes_no_twins": 12,
     "location": "In Transit",
     "note": "",
-    "order": 1
+    "order": 1,
+    "same_for_both_contexts": false
   },
   {
     "section": "Daily External Variables",

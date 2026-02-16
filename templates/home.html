@@ -208,9 +208,15 @@
                                    {% if (section_name == 'Daily Minimum Activities' and not item.selected) or item.selected %}checked{% endif %}>
                             <label for="activity_{{ item.idx }}" style="flex: 1;">
                                 <strong>{{ item.activity.name }}</strong> 
+                                {% if twins_morning %}
+                                (<span class="time-display">{{ item.activity.minutes_twins }} min</span>
+                                {% set avg = item.activity.twins_avg %}
+                                {% set estimate = item.activity.minutes_twins %}
+                                {% else %}
                                 (<span class="time-display">{{ item.activity.minutes_no_twins }} min</span>
                                 {% set avg = item.activity.no_twins_avg %}
                                 {% set estimate = item.activity.minutes_no_twins %}
+                                {% endif %}
                                 {% if avg %}
                                     | Avg: <span style="color: #667eea; font-weight: bold;">{{ avg }} min</span>
                                     {% set diff = avg - estimate %}

@@ -8,7 +8,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+# Use a stable secret key so sessions survive restarts (e.g. on a Pi)
+# Falls back to a random key if SECRET_KEY env var is not set
+app.secret_key = os.environ.get('SECRET_KEY') or os.urandom(24)
 
 
 @app.route('/schedule_json', methods=['POST'])
@@ -253,7 +255,7 @@ def calculate_schedule(journey_stops, selected_activities, all_activities, twins
 
     # Determine constraints
     constraints = []
-    if twins_morning and school_arrival_time and 'school' in stops_list:
+    if school_arrival_time and 'school' in stops_list:
         try:
             datetime.strptime(school_arrival_time, '%H:%M')
             constraints.append(('school', school_arrival_time))
@@ -782,4 +784,10 @@ def reorder_activity():
     return {'success': True}
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    debug = os.environ.get('FLASK_DEBUG', '0') == '1'
+    if debug:
+        app.run(host='0.0.0.0', port=5000, debug=True)
+    else:
+        from waitress import serve
+        logger.info("Starting production server on http://0.0.0.0:5000")
+        serve(app, host='0.0.0.0', port=5000)
